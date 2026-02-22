@@ -9,6 +9,8 @@ import { SwarmOrchestrator } from './orchestrator/SwarmOrchestrator';
 import { GradingService, ExpectedAnswer } from './services/GradingService';
 import { SignService } from './crypto/sign';
 import { ethers } from 'ethers';
+import { JudgingEngine } from './judging/JudgingEngine';
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -28,6 +30,12 @@ const llmService = new LLMService(
 const architectAgent = new ArchitectAgent(llmService);
 const specialistAgent = new SpecialistAgent();
 const orchestrator = new SwarmOrchestrator(architectAgent, specialistAgent);
+const judgingEngine = new JudgingEngine({
+  enableCache: true,
+  enableRedis: process.env.REDIS_URL ? true : false,
+  redisUrl: process.env.REDIS_URL,
+  useMockEigenAI: true
+});
 
 app.use(express.json());
 
@@ -144,6 +152,58 @@ app.post('/attest', async (req, res) => {
     // Sanitize error - ensure no env vars leak
     res.status(400).json({ 
       error: (error as Error).message.replace(/0x[a-fA-F0-9]{64}/g, '[REDACTED]') 
+    });
+  }
+});
+
+/**
+ * VERIFY CODE ENDPOINT (Chunk 2)
+ * Two-layer AI judging: AST structural analysis + EigenAI semantic review
+ */
+app.post('/verify-code', async (req, res) => {
+  try {
+    const { userAddress, sessionId, milestoneId, codeFiles, rubric, seed } = req.body;
+
+    if (!userAddress || !sessionId || !milestoneId || !Array.isArray(codeFiles)) {
+      return res.status(400).json({ error: 'Missing required fields: userAddress, sessionId, milestoneId, codeFiles' });
+    }
+
+    if (!ethers.isAddress(userAddress)) {
+      throw new Error('INVALID_ADDRESS');
+    }
+
+    agentLogger.info({ userAddress, sessionId, milestoneId }, 'Processing code verification');
+
+    const submission = {
+      user_address: userAddress,
+      session_id: sessionId,
+      milestone_id: milestoneId,
+      code_files: codeFiles.map((file: any) => ({
+        file_path: file.file_path,
+        content: file.content,
+        language: file.language || 'typescript'
+      }))
+    };
+
+    const result = await judgingEngine.judge({
+      submission,
+      rubric,
+      seed: seed || Date.now()
+    });
+
+    const report = judgingEngine.generateReport(result);
+
+    res.json({
+      success: true,
+      result,
+      report,
+      cache_stats: judgingEngine.getCacheStats()
+    });
+
+  } catch (error) {
+    agentLogger.error({ error: (error as Error).message }, 'Code verification failed');
+    res.status(400).json({ 
+      error: (error as Error).message 
     });
   }
 });

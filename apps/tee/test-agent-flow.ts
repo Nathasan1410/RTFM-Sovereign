@@ -4,6 +4,7 @@ import { ArchitectAgent } from './src/agents/architect/ArchitectAgent';
 import { ProjectManagerAgent } from './src/agents/manager/ProjectManagerAgent';
 import { SwarmAgent } from './src/agents/swarm/SwarmAgent';
 import { agentLogger } from './src/utils/logger';
+import { JudgingEngine } from './src/judging/JudgingEngine';
 
 // Mock LLM Service (since we're testing logic flow, not API calls)
 const mockLLMService = {} as LLMService;
@@ -14,7 +15,8 @@ async function runEndToEndTest() {
   // 1. Initialize Agents
   const architect = new ArchitectAgent(mockLLMService);
   const swarm = new SwarmAgent(mockLLMService);
-  const manager = new ProjectManagerAgent(swarm);
+  const judgingEngine = new JudgingEngine({ useMockEigenAI: true });
+  const manager = new ProjectManagerAgent(swarm, judgingEngine);
 
   // 2. Agent 1: Generate Golden Path
   console.log('\n[AGENT 1] Generating Golden Path...');

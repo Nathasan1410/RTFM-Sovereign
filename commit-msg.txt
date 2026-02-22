@@ -1,0 +1,7 @@
+feat: Add EigenAI deTERMinal token grant support
+
+- Update EigenAIProvider to use wallet signature authentication
+- Add WALLET_PRIVATE_KEY environment variable
+- Update LLMService to support wallet private key
+- Add dotenv/config to server.ts for environment loading
+- Update .env.example with new configuration

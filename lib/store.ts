@@ -3,6 +3,24 @@ import { AppState } from '@/types/store';
 import { Roadmap, ProgressEntry } from '@/types/schemas';
 import { db } from '@/lib/db';
 
+// --- Helper Functions ---
+
+const composeProgressKey = (roadmapId: string, moduleId: string) => `${roadmapId}_${moduleId}`;
+
+const createDefaultProgress = (roadmapId: string, moduleId: string): ProgressEntry => ({
+  roadmapId,
+  moduleId,
+  isCompleted: false,
+  completedAt: null,
+  attempts: 0,
+  verificationStatus: 'ACTIVE',
+});
+
+const getExistingOrDefault = (state: AppState, roadmapId: string, moduleId: string): ProgressEntry => {
+  const key = composeProgressKey(roadmapId, moduleId);
+  return state.progress[key] ?? createDefaultProgress(roadmapId, moduleId);
+};
+
 // --- Store Implementation ---
 
 interface AppStore extends AppState {
@@ -110,27 +128,19 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   saveModuleProgress: async (roadmapId: string, moduleId: string, updates: Partial<ProgressEntry>) => {
-    const key = `${roadmapId}_${moduleId}`;
+    const key = composeProgressKey(roadmapId, moduleId);
     const state = get();
-    const existing = state.progress[key] || {
-      roadmapId,
-      moduleId,
-      isCompleted: false,
-      completedAt: null,
-      attempts: 0,
-      verificationStatus: 'ACTIVE',
-    };
+    const existing = getExistingOrDefault(state, roadmapId, moduleId);
 
     const entry: ProgressEntry = {
       ...existing,
       ...updates,
-      // Ensure composite key parts are preserved
       roadmapId,
       moduleId,
     };
 
     try {
-      await db.updateProgress(entry); // This updates DB
+      await db.updateProgress(entry);
       set((state) => ({
         progress: {
           ...state.progress,
@@ -144,16 +154,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   toggleModuleCompletion: async (roadmapId: string, moduleId: string, isCompleted: boolean) => {
-    const key = `${roadmapId}_${moduleId}`;
+    const key = composeProgressKey(roadmapId, moduleId);
     const state = get();
-    const existing = state.progress[key] || {
-      roadmapId,
-      moduleId,
-      isCompleted: false,
-      completedAt: null,
-      attempts: 0,
-      verificationStatus: 'ACTIVE',
-    };
+    const existing = getExistingOrDefault(state, roadmapId, moduleId);
 
     const entry: ProgressEntry = {
       ...existing,
@@ -169,47 +172,43 @@ export const useAppStore = create<AppStore>()((set, get) => ({
           [key]: entry,
         },
       }));
-      
-      // Streak Logic
+
       if (isCompleted) {
         const today = new Date().toISOString().split('T')[0] || '';
         const lastStreakDate = localStorage.getItem('rtfm_last_streak_date');
         let currentStreak = parseInt(localStorage.getItem('rtfm_streak_count') || '0', 10);
-        
+
         if (lastStreakDate !== today) {
            if (lastStreakDate) {
              const lastDate = new Date(lastStreakDate);
              const now = new Date();
              const diffTime = Math.abs(now.getTime() - lastDate.getTime());
-             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-             
-             if (diffDays <= 2) { 
-               // 1 day difference (yesterday) or same day (handled by outer check but safe)
-               // actually diffDays=1 means same day if calculated raw, but with day boundary logic:
-               // simple check: if yesterday was last streak, increment.
-               // Let's use simple logic:
+             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+             if (diffDays <= 2) {
                const yesterday = new Date();
                yesterday.setDate(yesterday.getDate() - 1);
                const yesterdayStr = yesterday.toISOString().split('T')[0];
-               
+
                if (lastStreakDate === yesterdayStr) {
                  currentStreak++;
                } else {
-                 currentStreak = 1; // Reset if gap > 1 day
+                 currentStreak = 1;
                }
+             } else {
+               currentStreak = 1;
+             }
            } else {
              currentStreak = 1;
            }
         } else {
-           // First time ever
            if (currentStreak === 0) currentStreak = 1;
         }
-        
+
         localStorage.setItem('rtfm_streak_count', currentStreak.toString());
         localStorage.setItem('rtfm_last_streak_date', today);
         window.dispatchEvent(new Event('storage'));
       }
-    }
     } catch (error) {
       console.error('Failed to toggle completion:', error);
       set({ error: 'Failed to update progress' });

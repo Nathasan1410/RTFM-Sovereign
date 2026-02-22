@@ -3,13 +3,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { SessionState, SessionStateSchema, GoldenPath, DelegationPayload, DelegationPayloadSchema } from '../schemas';
 import { agentLogger } from '../../utils/logger';
 import { SwarmAgent } from '../swarm/SwarmAgent';
+import { JudgingEngine, JudgingRequest } from '../../judging/JudgingEngine';
 
 export class ProjectManagerAgent {
   private sessions: Map<string, SessionState> = new Map();
   private swarmAgent: SwarmAgent;
+  private judgingEngine: JudgingEngine;
 
-  constructor(swarmAgent: SwarmAgent) {
+  constructor(swarmAgent: SwarmAgent, judgingEngine: JudgingEngine) {
     this.swarmAgent = swarmAgent;
+    this.judgingEngine = judgingEngine;
   }
 
   public async createSession(userAddress: string, goldenPath: GoldenPath): Promise<string> {
@@ -114,5 +117,67 @@ export class ProjectManagerAgent {
       status: 'DEEP_MODE_COMPLETE',
       swarm_output: swarmResult
     };
+  }
+
+  public async verifyMilestone(
+    sessionId: string,
+    milestoneId: number,
+    codeFiles: Array<{ file_path: string; content: string; language?: string }>,
+    rubric?: any,
+    seed?: number
+  ): Promise<any> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+
+    agentLogger.info({ sessionId, milestoneId }, 'ProjectManager: Verifying Milestone');
+
+    const submission = {
+      user_address: session.user_address,
+      session_id: sessionId,
+      milestone_id: milestoneId,
+      code_files: codeFiles.map(file => ({
+        file_path: file.file_path,
+        content: file.content,
+        language: file.language || 'typescript'
+      }))
+    };
+
+    const judgingRequest: JudgingRequest = {
+      submission,
+      rubric,
+      seed: seed || Date.now()
+    };
+
+    const result = await this.judgingEngine.judge(judgingRequest);
+
+    if (result.passed) {
+      session.verification.milestone_scores.push({
+        milestone_id: milestoneId,
+        score: result.overall_score,
+        verified_at: new Date().toISOString()
+      });
+
+      const completedMilestone = session.project.golden_path.milestones.find(m => m.milestone_id === milestoneId);
+      if (completedMilestone) {
+        session.project.completed_milestones.push(milestoneId);
+      }
+    }
+
+    return {
+      success: true,
+      result,
+      session_state: {
+        current_milestone: session.project.current_milestone,
+        completed_milestones: session.project.completed_milestones
+      }
+    };
+  }
+
+  public getSession(sessionId: string): SessionState | undefined {
+    return this.sessions.get(sessionId);
+  }
+
+  public getAllSessions(): SessionState[] {
+    return Array.from(this.sessions.values());
   }
 }

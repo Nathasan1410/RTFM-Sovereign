@@ -24,7 +24,9 @@
   "dependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@radix-ui/react-slot": "^1.2.4",
+    "@rainbow-me/rainbowkit": "^2.2.10",
     "@rtfm/types": "file:../packages/types",
+    "@tanstack/react-query": "^5.90.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -37,6 +39,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
+    "viem": "^2.46.2",
+    "wagmi": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

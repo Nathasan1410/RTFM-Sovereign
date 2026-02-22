@@ -63,24 +63,11 @@ app.post('/challenge/generate', async (req, res) => {
     const { userAddress, topic } = req.body;
     if (!userAddress || !topic) return res.status(400).json({ error: 'Missing userAddress or topic' });
 
-    const challenge = await architectAgent.generateChallenge(userAddress, topic, 1);
-    
-    // Sanitize: Remove expectedKeywords before sending to client
-    const sanitizedChallenge = {
-        ...challenge,
-        modules: challenge.modules.map(m => ({
-            ...m,
-            questions: m.questions.map(q => {
-                // @ts-ignore
-                const { expectedKeywords, ...rest } = q; 
-                return rest;
-            })
-        }))
-    };
+    const roadmap = await architectAgent.generateRoadmap(userAddress, topic, 1);
 
-    res.json(sanitizedChallenge);
+    res.json(roadmap);
   } catch (error) {
-    agentLogger.error({ error: (error as Error).message }, 'Challenge generation failed');
+    agentLogger.error({ error: (error as Error).message }, 'Roadmap generation failed');
     res.status(500).json({ error: 'Generation failed' });
   }
 });

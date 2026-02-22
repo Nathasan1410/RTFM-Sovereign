@@ -2,21 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, AlertTriangle, Check, Download, Key, Eye, EyeOff, Save, Trash2 } from "lucide-react";
+import { Upload, Check, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { useAppStore } from "@/lib/store";
 import { ExportDataSchema, ExportData, ProgressEntry } from "@/types/schemas";
 
-const API_PROVIDERS = [
-  { id: 'groq', name: 'Groq', placeholder: 'gsk_...', url: 'https://console.groq.com/keys', importance: 'crucial' as const },
-  { id: 'cerebras', name: 'Cerebras', placeholder: 'csk-...', url: 'https://cloud.cerebras.ai/platform', importance: 'crucial' as const },
-  { id: 'brave', name: 'Brave Search', placeholder: 'BSA...', url: 'https://api.search.brave.com/app/keys', importance: 'recommended' as const },
-  { id: 'serper', name: 'Serper (Google)', placeholder: 'API Key...', url: 'https://serper.dev/api-key', importance: 'optional' as const },
-] as const;
+const API_PROVIDERS = [] as const;
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -25,42 +19,6 @@ export default function SettingsPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // API Key State
-  const apiKeys = useAppStore((state) => state.apiKeys);
-  const setApiKey = useAppStore((state) => state.setApiKey);
-  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
-  const [tempKeys, setTempKeys] = useState<Record<string, string>>({});
-  const [keyStatus, setKeyStatus] = useState<Record<string, 'idle' | 'testing' | 'valid' | 'invalid'>>({});
-
-  useEffect(() => {
-    // Sync store keys to temp state on load
-    setTempKeys(apiKeys as Record<string, string>);
-  }, [apiKeys]);
-
-  const toggleVisibility = (id: string) => {
-    setVisibleKeys(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleKeyChange = (id: string, value: string) => {
-    setTempKeys(prev => ({ ...prev, [id]: value }));
-    setKeyStatus(prev => ({ ...prev, [id]: 'idle' }));
-  };
-
-  const saveKey = (id: string) => {
-    const key = tempKeys[id];
-    setApiKey(id as 'groq' | 'cerebras' | 'brave' | 'serper', key || undefined);
-    // Visual feedback
-    setKeyStatus(prev => ({ ...prev, [id]: 'valid' })); // Optimistic save
-    setTimeout(() => setKeyStatus(prev => ({ ...prev, [id]: 'idle' })), 2000);
-  };
-
-  const clearKey = (id: string) => {
-    if (confirm(`Remove ${id} API Key?`)) {
-        setApiKey(id as 'groq' | 'cerebras' | 'brave' | 'serper', undefined);
-        setTempKeys(prev => ({ ...prev, [id]: '' }));
-    }
-  };
   
   const initializeStore = useAppStore((state) => state.initialize);
 
@@ -160,135 +118,8 @@ export default function SettingsPage() {
     <div className="container max-w-4xl mx-auto py-12 px-6 space-y-12">
       <div>
         <h1 className="text-3xl font-bold font-mono text-zinc-50 mb-2">Settings</h1>
-        <p className="text-zinc-400">Manage your API keys and local data.</p>
+        <p className="text-zinc-400">Manage your local data and backups.</p>
       </div>
-
-      {/* API Keys Section */}
-      <section className="border border-zinc-800 bg-zinc-900/30 p-8 rounded-sm space-y-6">
-        <div className="flex items-center gap-3 mb-6 border-b border-zinc-800 pb-4">
-          <Key className="w-5 h-5 text-zinc-400" />
-          <div>
-            <h2 className="text-xl font-bold text-zinc-200">API Configuration</h2>
-            <p className="text-sm text-zinc-500">
-              Your keys are stored locally in your browser. They are never sent to our servers, only to the respective API providers.
-            </p>
-          </div>
-        </div>
-
-        {/* API Key Importance Guide */}
-        <div className="bg-zinc-950/50 border border-zinc-800 rounded-sm p-4 space-y-3">
-          <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            API Key Importance Guide
-          </h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-start gap-2">
-              <span className="text-red-400 font-bold min-w-[60px]">CRUCIAL:</span>
-              <span className="text-zinc-400">
-                <strong className="text-zinc-300">Groq or Cerebras</strong> - Required for roadmap generation and AI features. At least one must be set.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-amber-400 font-bold min-w-[60px]">RECOMMENDED:</span>
-              <span className="text-zinc-400">
-                <strong className="text-zinc-300">Brave Search</strong> - Enhances chatbot with web search results. Highly recommended for better AI responses.
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-zinc-500 font-bold min-w-[60px]">OPTIONAL:</span>
-              <span className="text-zinc-400">
-                <strong className="text-zinc-300">Serper (Google)</strong> - Alternative to Brave Search. Use if you prefer Google results.
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {API_PROVIDERS.map((provider) => {
-            const importanceColors = {
-              crucial: 'bg-red-500/10 text-red-400 border-red-500/20',
-              recommended: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-              optional: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
-            };
-            const importanceLabels = {
-              crucial: 'CRUCIAL',
-              recommended: 'RECOMMENDED',
-              optional: 'OPTIONAL'
-            };
-
-            return (
-              <div key={provider.id} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={provider.id} className="text-zinc-300 font-mono text-sm uppercase tracking-wide">
-                      {provider.name}
-                    </Label>
-                    <span className={cn(
-                      "text-[10px] font-bold px-1.5 py-0.5 rounded border",
-                      importanceColors[provider.importance]
-                    )}>
-                      {importanceLabels[provider.importance]}
-                    </span>
-                  </div>
-                  <a 
-                    href={provider.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                  >
-                    Get Key <Download className="w-3 h-3 rotate-180" />
-                  </a>
-                </div>
-              
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    id={provider.id}
-                    type={visibleKeys[provider.id] ? "text" : "password"}
-                    placeholder={provider.placeholder}
-                    value={tempKeys[provider.id] || ""}
-                    onChange={(e) => handleKeyChange(provider.id, e.target.value)}
-                    className="pr-10 bg-zinc-950 border-zinc-800 focus:border-zinc-600 font-mono text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => toggleVisibility(provider.id)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-                  >
-                    {visibleKeys[provider.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                
-                <Button 
-                  onClick={() => saveKey(provider.id)}
-                  variant="secondary"
-                  size="icon"
-                  className={cn(
-                    "border border-zinc-700 transition-all",
-                    keyStatus[provider.id] === 'valid' ? "bg-green-900/20 text-green-500 border-green-900" : ""
-                  )}
-                  title="Save Key"
-                >
-                   {keyStatus[provider.id] === 'valid' ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                </Button>
-
-                {apiKeys[provider.id as keyof typeof apiKeys] && (
-                  <Button
-                    onClick={() => clearKey(provider.id)}
-                    variant="ghost"
-                    size="icon"
-                    className="text-zinc-500 hover:text-red-400"
-                    title="Remove Key"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            );
-          })}
-        </div>
-      </section>
 
       {/* Export Section */}
       <section className="border border-zinc-800 bg-zinc-900/30 p-8 rounded-sm space-y-6">

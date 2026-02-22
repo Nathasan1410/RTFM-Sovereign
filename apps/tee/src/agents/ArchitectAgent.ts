@@ -1,7 +1,7 @@
 import { keccak256, toUtf8Bytes } from 'ethers';
 import { agentLogger } from '../utils/logger';
 import { LLMService } from '../services/llm/LLMService';
-import { Challenge as LLMChallenge } from '../services/llm/types';
+import { Challenge as LLMChallenge, RoadmapResponse } from '../services/llm/types';
 
 export interface Challenge extends LLMChallenge {
   challengeId: string;
@@ -49,5 +49,25 @@ export class ArchitectAgent {
     agentLogger.info({ challengeId: challenge.challengeId, provider: 'LLMService' }, 'Challenge generated');
 
     return challenge;
+  }
+
+  public async generateRoadmap(
+    userAddress: string,
+    topic: string,
+    attemptNumber: number = 1
+  ): Promise<RoadmapResponse> {
+    agentLogger.info({ userAddress, topic, attemptNumber }, 'Generating AI roadmap');
+
+    // 1. Compute Deterministic Seed
+    const seedString = `${userAddress}:${topic}:${attemptNumber}`;
+    const seedHash = keccak256(toUtf8Bytes(seedString));
+    const seedInt = parseInt(seedHash.substring(2, 10), 16);
+
+    // 2. Call LLM Service (EigenAI -> Groq Fallback)
+    const roadmap = await this.llmService.generateRoadmap(userAddress, topic, seedInt);
+
+    agentLogger.info({ userAddress, topic, provider: 'LLMService' }, 'Roadmap generated');
+
+    return roadmap;
   }
 }

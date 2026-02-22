@@ -1,4 +1,4 @@
-import { LLMProvider, Challenge } from './types';
+import { LLMProvider, Challenge, RoadmapResponse } from './types';
 import { EigenAIProvider } from './EigenAIProvider';
 import { GroqProvider } from './GroqProvider';
 import { BraveProvider } from './BraveProvider';
@@ -11,7 +11,7 @@ export class LLMService {
   private failureCounts: number[] = [];
   private lastFailureTimes: number[] = [];
   private readonly FAILURE_THRESHOLD = 5;
-  private readonly COOLDOWN_PERIOD = 60000; // 60s
+  private readonly COOLDOWN_PERIOD = 60000;
 
   constructor(
     cerebrasKey: string,
@@ -21,18 +21,14 @@ export class LLMService {
     eigenKey: string,
     eigenPrivateKey: string = ''
   ) {
-    // Initialize providers in order of preference
-    // EigenAI with wallet signature auth (deTERMinal token grants) is highest priority if configured
     if (eigenPrivateKey) {
         this.providers.push(new EigenAIProvider(eigenPrivateKey));
     }
     
-    // Fallback providers using API key authentication
     if (groqKey) this.providers.push(new GroqProvider(groqKey));
     if (braveKey) this.providers.push(new BraveProvider(braveKey));
     if (hyperbolicKey) this.providers.push(new HyperbolicProvider(hyperbolicKey));
     
-    // Initialize circuit breaker state for each provider
     this.providers.forEach(() => {
       this.circuitOpen.push(false);
       this.failureCounts.push(0);
@@ -50,11 +46,9 @@ export class LLMService {
     for (let i = 0; i < this.providers.length; i++) {
       const provider = this.providers[i];
       
-      // Check Circuit Breaker
       if (this.circuitOpen[i]) {
         if (Date.now() - this.lastFailureTimes[i] > this.COOLDOWN_PERIOD) {
           logger.info({ provider: provider.name }, 'Circuit Breaker HALF_OPEN: Retrying provider...');
-          // Allow one request through
         } else {
           logger.warn({ provider: provider.name }, 'Circuit Breaker OPEN: Skipping provider...');
           continue;
@@ -64,7 +58,53 @@ export class LLMService {
       try {
         const result = await provider.generateChallenge(userAddress, topic, seed);
         
-        // Success: Reset circuit breaker for this provider
+        if (this.circuitOpen[i]) {
+          logger.info({ provider: provider.name }, 'Circuit Breaker CLOSED: Provider recovered');
+          this.circuitOpen[i] = false;
+          this.failureCounts[i] = 0;
+        }
+        
+        return result;
+
+      } catch (error) {
+        this.failureCounts[i]++;
+        this.lastFailureTimes[i] = Date.now();
+        lastError = error as Error;
+        
+        logger.error({ 
+          error: (error as Error).message, 
+          provider: provider.name,
+          failures: this.failureCounts[i] 
+        }, 'Provider failed');
+
+        if (this.failureCounts[i] >= this.FAILURE_THRESHOLD) {
+          this.circuitOpen[i] = true;
+          logger.warn({ provider: provider.name }, 'Circuit Breaker TRIPPED: Switching to next provider');
+        }
+      }
+    }
+
+    throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
+  }
+
+  async generateRoadmap(userAddress: string, topic: string, seed: number): Promise<RoadmapResponse> {
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < this.providers.length; i++) {
+      const provider = this.providers[i];
+      
+      if (this.circuitOpen[i]) {
+        if (Date.now() - this.lastFailureTimes[i] > this.COOLDOWN_PERIOD) {
+          logger.info({ provider: provider.name }, 'Circuit Breaker HALF_OPEN: Retrying provider...');
+        } else {
+          logger.warn({ provider: provider.name }, 'Circuit Breaker OPEN: Skipping provider...');
+          continue;
+        }
+      }
+
+      try {
+        const result = await provider.generateRoadmap(userAddress, topic, seed);
+        
         if (this.circuitOpen[i]) {
           logger.info({ provider: provider.name }, 'Circuit Breaker CLOSED: Provider recovered');
           this.circuitOpen[i] = false;

@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import { LLMProvider, Challenge } from './types';
+import { LLMProvider, RoadmapResponse } from './types';
 import { logger } from '../../utils/logger';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http } from 'viem';
@@ -39,10 +39,30 @@ export class EigenAIProvider implements LLMProvider {
     return await account.signMessage({ message });
   }
 
-  async generateChallenge(userAddress: string, topic: string, seed: number): Promise<Challenge> {
-    const prompt = `Generate a rigorous technical challenge about "${topic}" with exactly 7 modules.
-    Structure: { "modules": [ { "id": 1, "difficulty": "easy", "weight": 10, "questions": [ { "id": "q1", "prompt": "...", "expectedPoints": 10, "expectedKeywords": ["keyword1", "keyword2"] } ] } ... ] }
-    Total weight must sum to 100. Output valid JSON only.`;
+  async generateChallenge(userAddress: string, topic: string, seed: number): Promise<RoadmapResponse> {
+    const prompt = `Generate a rigorous learning roadmap for "${topic}" with exactly 7 modules.
+    Structure: { 
+      "title": "Project Title",
+      "modules": [ 
+        { 
+          "order": 1,
+          "title": "Step Title",
+          "context": "Explanation of the concept and why it's essential...",
+          "docs": [
+            { "title": "MDN Reference", "url": "https://developer.mozilla.org/..." }
+          ],
+          "challenge": "Specific instruction on what to build...",
+          "verificationCriteria": [
+            "Check for div with class 'card'",
+            "Check width is fixed or max-width",
+            "Check padding is applied"
+          ],
+          "groundTruth": "<div class='card'>...</div>",
+          "starterCode": "<!-- Write your code here -->"
+        }
+      ]
+    }
+    Generate 5-7 micro-steps. Output valid JSON only.`;
     
     try {
       logger.info({ provider: this.name, user: userAddress, topic, seed }, 'Requesting generation');
@@ -58,7 +78,7 @@ export class EigenAIProvider implements LLMProvider {
         this.endpoint,
         {
           messages: [
-            { role: 'system', content: 'You are a deterministic technical interviewer. Output valid JSON only.' },
+            { role: 'system', content: 'You are a Brutal Tech Mentor & Project Architect. Output valid JSON only.' },
             { role: 'user', content: prompt }
           ],
           model: 'gpt-oss-120b-f16',
@@ -72,7 +92,7 @@ export class EigenAIProvider implements LLMProvider {
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 60000 // Extended timeout
+          timeout: 60000
         }
       );
 
@@ -80,18 +100,16 @@ export class EigenAIProvider implements LLMProvider {
       
       // Clean up markdown if present
       const jsonContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      const challenge = JSON.parse(jsonContent);
+      const roadmap = JSON.parse(jsonContent);
       
       // Basic validation
-      if (!challenge.modules || challenge.modules.length !== 7) {
-        throw new Error('Invalid challenge structure: Modules count mismatch');
+      if (!roadmap.modules || roadmap.modules.length !== 7) {
+        throw new Error('Invalid roadmap structure: Modules count mismatch');
       }
 
       return {
-        id: `challenge-${seed}`,
-        topic,
-        difficulty: 'hard',
-        modules: challenge.modules
+        title: roadmap.title,
+        modules: roadmap.modules
       };
     } catch (error) {
       logger.error({ error: (error as Error).message, provider: this.name }, 'Generation failed');

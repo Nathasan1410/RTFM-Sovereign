@@ -18,16 +18,16 @@ export class LLMService {
     groqKey: string,
     braveKey: string,
     hyperbolicKey: string,
-    eigenKey: string
+    eigenKey: string,
+    eigenPrivateKey: string = ''
   ) {
     // Initialize providers in order of preference
-    // Note: Cerebras is primary, others are fallbacks
-    // We can add CerebrasProvider here if available, currently using EigenAIProvider as primary based on existing code structure,
-    // but typically Cerebras would be its own provider. 
-    // Assuming EigenAIProvider wraps Cerebras or is the primary intended provider.
-    // If CerebrasProvider exists, we should use it. Let's stick to the existing pattern but expand.
+    // EigenAI with wallet signature auth (deTERMinal token grants) is highest priority if configured
+    if (eigenPrivateKey) {
+        this.providers.push(new EigenAIProvider(eigenPrivateKey));
+    }
     
-    // For now, let's treat them as a list of providers to try in order.
+    // Fallback providers using API key authentication
     if (cerebrasKey) {
         // Assuming there is a CerebrasProvider or we use EigenAIProvider as a placeholder for it if configured that way.
         // The original code used EigenAIProvider with eigenKey.

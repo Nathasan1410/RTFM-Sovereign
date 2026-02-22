@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { TEEIdentity } from './crypto/signer';
 import { logger, healthLogger, agentLogger } from './utils/logger';
@@ -21,7 +22,8 @@ const llmService = new LLMService(
   process.env.GROQ_API_KEY || '',
   process.env.BRAVE_API_KEY || '',
   process.env.HYPERBOLIC_API_KEY || '',
-  process.env.EIGENAI_API_KEY || ''
+  process.env.EIGENAI_API_KEY || '',
+  process.env.WALLET_PRIVATE_KEY || ''
 );
 const architectAgent = new ArchitectAgent(llmService);
 const specialistAgent = new SpecialistAgent();

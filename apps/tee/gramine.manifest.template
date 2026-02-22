@@ -1,0 +1,36 @@
+# Gramine Manifest Template
+loader.entrypoint = "node"
+libos.entrypoint = "/usr/bin/node"
+
+# Environment variables
+loader.env.LD_LIBRARY_PATH = "/lib:/usr/lib:/usr/lib/x86_64-linux-gnu"
+loader.env.NODE_ENV = "production"
+
+# Trust Cerebras API CA
+sgx.trusted_files = [
+  "file:/etc/ssl/certs/ca-certificates.crt",
+  "file:/usr/bin/node",
+  "file:/app/dist/server.js",
+  "file:/app/node_modules/",
+]
+
+# Allow access to random device (for key gen)
+sgx.allowed_files = [
+  "file:/dev/urandom",
+  "file:/dev/random",
+  "file:/app/sealed/",
+]
+
+# Protected files (Encrypted by SGX sealing key)
+sgx.protected_files = [
+  "file:/sealed/tee-key.json",
+  "file:/sealed/cerebras-key.txt"
+]
+
+# Memory settings (128MB EPC limit)
+sgx.heap_size = "128M"
+sgx.stack_size = "8M"
+sgx.max_threads = 8
+
+# Networking
+sys.insecure__allow_eventfd = true

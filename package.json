@@ -1,0 +1,33 @@
+{
+  "name": "rtfm-sovereign",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "web:dev": "pnpm --filter @rtfm/web dev",
+    "web:build": "pnpm --filter @rtfm/web build",
+    "web:start": "pnpm --filter @rtfm/web start",
+    "web:lint": "pnpm --filter @rtfm/web lint",
+    "web:typecheck": "pnpm --filter @rtfm/web typecheck",
+    "tee:build": "pnpm --filter @rtfm/tee build",
+    "tee:docker": "docker build -f apps/tee/Dockerfile.tee -t rtfm-tee .",
+    "contracts:test": "pnpm --filter @rtfm/contracts test",
+    "contracts:deploy": "pnpm --filter @rtfm/contracts deploy:sepolia",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "ethers": "^6.16.0",
+    "prettier": "^3",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

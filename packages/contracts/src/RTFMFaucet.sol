@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title RTFMFaucet
@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract RTFMFaucet is Ownable, ReentrancyGuard {
     uint256 public constant DRIP_AMOUNT = 0.01 ether;
     uint256 public constant COOLDOWN_PERIOD = 1 hours;
+    
+    constructor(address initialOwner) Ownable(initialOwner) {}
     
     mapping(address => uint256) public lastDripTime;
     

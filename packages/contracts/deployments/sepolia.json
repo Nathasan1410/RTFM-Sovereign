@@ -1,0 +1,20 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contracts": {
+    "RTFMVerifiableRegistry": {
+      "address": "0x7006e886e56426Fbb942B479AC8eF5C47a7531f1",
+      "deployer": "0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48",
+      "deploymentTx": "0x59f58379b24e2881280a7b8cab618102631d55549da742eaa378fe549ef68ace",
+      "blockNumber": 10311757,
+      "version": "1.0.0"
+    },
+    "RTFMFaucet": {
+      "address": "0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790",
+      "deployer": "0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48",
+      "deploymentTx": "0xc596ba783a1bd9226921c333a1754c9f8af04ec819a690c63368aee83e7c3ea3",
+      "blockNumber": 10311757,
+      "version": "1.0.0"
+    }
+  }
+}

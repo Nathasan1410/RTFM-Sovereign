@@ -28,18 +28,9 @@ export class LLMService {
     }
     
     // Fallback providers using API key authentication
-    if (cerebrasKey) {
-        // Assuming there is a CerebrasProvider or we use EigenAIProvider as a placeholder for it if configured that way.
-        // The original code used EigenAIProvider with eigenKey.
-        // Let's keep EigenAIProvider as one option.
-    }
-
-    // Let's restructure to support the list
-    if (cerebrasKey) this.providers.push(new EigenAIProvider(cerebrasKey));
     if (groqKey) this.providers.push(new GroqProvider(groqKey));
     if (braveKey) this.providers.push(new BraveProvider(braveKey));
     if (hyperbolicKey) this.providers.push(new HyperbolicProvider(hyperbolicKey));
-    if (eigenKey) this.providers.push(new EigenAIProvider(eigenKey));
     
     // Initialize circuit breaker state for each provider
     this.providers.forEach(() => {

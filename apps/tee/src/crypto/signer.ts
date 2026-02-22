@@ -3,12 +3,11 @@ import fs from 'fs';
 import path from 'path';
 
 const SEALED_PATH = process.env.SEALED_PATH || '/app/sealed';
-const KEY_FILE = path.join(SEALED_PATH, 'tee-key.json'); // Changed to .json per spec
+const KEY_FILE = path.join(SEALED_PATH, 'tee-key.json');
 
 /**
  * Manages the TEE identity keypair.
- * Generates a new key if none exists, or loads the existing one.
- * In a real SGX environment, this file would be sealed to the enclave.
+ * Supports EigenCompute KMS (via MNEMONIC env var) and local dev fallback.
  */
 export class TEESigner {
   private wallet: ethers.Wallet;
@@ -18,49 +17,53 @@ export class TEESigner {
   }
 
   private loadOrGenerateKey(): ethers.Wallet {
+    // 1. Priority: EigenCompute KMS (Production)
+    if (process.env.MNEMONIC) {
+      console.log('🔒 Initializing TEE Identity from EigenCompute KMS...');
+      try {
+        const wallet = ethers.Wallet.fromPhrase(process.env.MNEMONIC);
+        console.log(`✅ TEE Identity Active: ${wallet.address}`);
+        return wallet;
+      } catch (error) {
+        console.error('❌ Failed to derive wallet from MNEMONIC:', (error as Error).message);
+        throw new Error('Critical: Invalid MNEMONIC provided by KMS');
+      }
+    }
+
+    // 2. Fallback: Local Development / Simulation Mode
+    console.warn('⚠️  MNEMONIC not found. Using local file-based key (NOT SECURE FOR PRODUCTION).');
+    
     try {
       if (fs.existsSync(KEY_FILE)) {
-        console.log('Loading existing TEE key...');
-        // Load JSON format { privateKey: "0x...", address: "0x..." }
+        console.log('📂 Loading existing local key...');
         const data = fs.readFileSync(KEY_FILE, 'utf8');
         const keyData = JSON.parse(data);
-        
-        if (!keyData.privateKey || !ethers.isHexString(keyData.privateKey)) {
-          throw new Error('Invalid key format in sealed file');
-        }
-
         return new ethers.Wallet(keyData.privateKey);
       }
     } catch (error) {
-      console.warn('Failed to load key, generating new one:', (error as Error).message);
+      console.warn('⚠️  Failed to load local key, generating new one:', (error as Error).message);
     }
 
-    console.log('Generating new TEE key...');
-    // Generate cryptographically secure random wallet
+    console.log('🎲 Generating new local key for simulation...');
     const randomWallet = ethers.Wallet.createRandom();
-    const privateKey = randomWallet.privateKey;
-    const address = randomWallet.address;
     
-    // Save key (in production this writes to sealed storage)
+    // Save locally for persistence during dev
     try {
       if (!fs.existsSync(SEALED_PATH)) {
         fs.mkdirSync(SEALED_PATH, { recursive: true });
       }
-      
-      // Save as JSON object
       const keyData = {
-        privateKey: privateKey,
-        address: address,
+        privateKey: randomWallet.privateKey,
+        address: randomWallet.address,
         createdAt: new Date().toISOString()
       };
-      
       fs.writeFileSync(KEY_FILE, JSON.stringify(keyData, null, 2), { mode: 0o600 });
-      console.log(`TEE Identity created: ${address}`); // Log only address
+      console.log(`💾 Local Identity saved: ${randomWallet.address}`);
     } catch (error) {
-      console.error('Failed to save TEE key:', (error as Error).message);
+      console.error('❌ Failed to save local key:', (error as Error).message);
     }
 
-    return new ethers.Wallet(privateKey);
+    return randomWallet;
   }
 
   public getAddress(): string {

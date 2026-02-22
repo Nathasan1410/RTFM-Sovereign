@@ -48,10 +48,11 @@ RUN gramine-manifest \
     gramine-sgx-gen-private-key
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 ENV ENCLAVE_ENABLED=true
 
-EXPOSE 3000
+# EigenCompute requires binding to 0.0.0.0
+EXPOSE 8080
 
 ENTRYPOINT ["gramine-sgx"]
 CMD ["/usr/local/bin/node", "dist/server.js"]

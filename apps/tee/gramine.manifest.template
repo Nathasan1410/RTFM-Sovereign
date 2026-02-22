@@ -2,11 +2,20 @@
 loader.entrypoint = "node"
 libos.entrypoint = "/usr/bin/node"
 
-# Environment variables
+# Environment variables - SECURITY CRITICAL
+# Only allow specific env vars to pass through from host (KMS injection)
 loader.env.LD_LIBRARY_PATH = "/lib:/usr/lib:/usr/lib/x86_64-linux-gnu"
-loader.env.NODE_ENV = "production"
+loader.env.NODE_ENV = { passthrough = true }
+loader.env.MNEMONIC = { passthrough = true }
+loader.env.CONTRACT_ADDRESS = { passthrough = true }
+loader.env.CHAIN_ID = { passthrough = true }
+loader.env.CEREBRAS_API_KEY = { passthrough = true }
 
-# Trust Cerebras API CA
+# Isolation: Prevent host environment leakage
+loader.insecure__use_host_env = false
+loader.insecure__allow_eventfd = false
+
+# Trust Cerebras API CA and Node.js runtime
 sgx.trusted_files = [
   "file:/etc/ssl/certs/ca-certificates.crt",
   "file:/usr/bin/node",
@@ -14,7 +23,7 @@ sgx.trusted_files = [
   "file:/app/node_modules/",
 ]
 
-# Allow access to random device (for key gen)
+# Allow access to random device (for key gen fallback & SSL)
 sgx.allowed_files = [
   "file:/dev/urandom",
   "file:/dev/random",
@@ -27,10 +36,10 @@ sgx.protected_files = [
   "file:/sealed/cerebras-key.txt"
 ]
 
-# Memory settings (128MB EPC limit)
-sgx.heap_size = "128M"
-sgx.stack_size = "8M"
-sgx.max_threads = 8
+# Memory settings (2GB EPC limit for EigenCompute)
+sgx.enclave_size = "2G"
+sgx.thread_num = 8
+sgx.remote_attestation = true
 
-# Networking
+# Networking (required for Express & External APIs)
 sys.insecure__allow_eventfd = true

@@ -117,6 +117,13 @@ app.post('/attest', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`TEE Service running on port ${port}`);
+  
+  if (process.env.MNEMONIC) {
+    console.log('🔒 Mode: PRODUCTION (EigenCompute KMS)');
+  } else {
+    console.log('⚠️ Mode: SIMULATION (Local/Unsafe Key)');
+  }
+  
   console.log(`TEE Public Key: ${signer.getPublicKey()}`);
   console.log(`TEE Address: ${signer.getAddress()}`);
 });

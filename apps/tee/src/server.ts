@@ -1,5 +1,5 @@
 import express from 'express';
-import { TEESigner } from './crypto/signer';
+import { TEEIdentity } from './crypto/signer';
 import { logger, healthLogger, agentLogger } from './utils/logger';
 import { ArchitectAgent } from './agents/ArchitectAgent';
 import { SpecialistAgent, Answer } from './agents/SpecialistAgent';
@@ -7,14 +7,14 @@ import { CerebrasService } from './services/CerebrasService';
 import { SwarmOrchestrator } from './orchestrator/SwarmOrchestrator';
 import { GradingService, ExpectedAnswer } from './services/GradingService';
 import { SignService } from './crypto/sign';
-import { keccak256, toUtf8Bytes } from 'ethers';
+import { ethers } from 'ethers';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Initialize Services (Dependency Injection)
-const signer = new TEESigner();
-const signService = new SignService(signer);
+const teeIdentity = new TEEIdentity();
+const signService = new SignService(teeIdentity);
 const gradingService = new GradingService();
 const architectAgent = new ArchitectAgent();
 const specialistAgent = new SpecialistAgent();
@@ -32,15 +32,17 @@ app.use((req, res, next) => {
 
 // TEE Identity Endpoint
 app.get('/identity', (req, res) => {
-  const { quote, publicKey } = signer.getAttestationQuote();
+  const { quote, publicKey } = teeIdentity.getAttestationQuote();
   res.json({
     publicKey,
-    address: signer.getAddress(),
+    address: teeIdentity.getAddress(),
+    contract: process.env.CONTRACT_ADDRESS,
     attestation: {
       report: quote,
       signature: 'MOCK_SIGNATURE_FROM_INTEL_SERVICE'
     },
-    version: '1'
+    version: '1',
+    status: 'active'
   });
 });
 
@@ -57,6 +59,10 @@ app.post('/attest', async (req, res) => {
     // 1. Validate Request
     if (!userAddress || !topic || !challengeId || !Array.isArray(answers)) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    if (!ethers.isAddress(userAddress)) {
+       throw new Error("INVALID_ADDRESS");
     }
 
     agentLogger.info({ userAddress, topic, challengeId }, 'Processing attestation request');
@@ -106,12 +112,16 @@ app.post('/attest', async (req, res) => {
         nonce: nonce.toString(), // BigInt to string
         deadline,
         attestationHash: signedAttestation.attestationHash
-      }
+      },
+      signer: teeIdentity.getAddress()
     });
 
   } catch (error) {
     agentLogger.error({ error: (error as Error).message }, 'Attestation failed');
-    res.status(500).json({ error: 'Internal Server Error' });
+    // Sanitize error - ensure no env vars leak
+    res.status(400).json({ 
+      error: (error as Error).message.replace(/0x[a-fA-F0-9]{64}/g, '[REDACTED]') 
+    });
   }
 });
 
@@ -124,7 +134,7 @@ app.listen(port, () => {
     console.log('⚠️ Mode: SIMULATION (Local/Unsafe Key)');
   }
   
-  console.log(`TEE Public Key: ${signer.getPublicKey()}`);
-  console.log(`TEE Address: ${signer.getAddress()}`);
+  console.log(`TEE Public Key: ${teeIdentity.getAttestationQuote().publicKey}`);
+  console.log(`TEE Address: ${teeIdentity.getAddress()}`);
 });
 

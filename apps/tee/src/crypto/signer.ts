@@ -1,109 +1,83 @@
 import { ethers } from 'ethers';
-import fs from 'fs';
-import path from 'path';
 
-const SEALED_PATH = process.env.SEALED_PATH || '/app/sealed';
-const KEY_FILE = path.join(SEALED_PATH, 'tee-key.json');
+interface EIP712Domain {
+  name: string;
+  version: string;
+  chainId: number;
+  verifyingContract: string;
+}
+
+export interface AttestationData {
+  user: string;      // address
+  topic: string;     // keccak256 hash or plain (match contract)
+  score: number;     // uint256 (0-100)
+  nonce: number;     // uint256 (timestamp or counter)
+  deadline: number;  // uint256 (unix timestamp)
+}
+
+const TYPES = {
+  Attestation: [
+    { name: "user", type: "address" },
+    { name: "topic", type: "string" },
+    { name: "score", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" }
+  ]
+};
 
 /**
- * Manages the TEE identity keypair.
- * Supports EigenCompute KMS (via MNEMONIC env var) and local dev fallback.
+ * TEEIdentity: Sovereign Identity Management
+ * - No private key persistence
+ * - No key logging
+ * - KMS injection only
  */
-export class TEESigner {
-  private wallet: ethers.Wallet;
+export class TEEIdentity {
+  private wallet: ethers.HDNodeWallet;
+  private domain: EIP712Domain;
 
   constructor() {
-    this.wallet = this.loadOrGenerateKey();
-  }
-
-  private loadOrGenerateKey(): ethers.Wallet {
-    // 1. Priority: EigenCompute KMS (Production)
-    if (process.env.MNEMONIC) {
-      console.log('🔒 Initializing TEE Identity from EigenCompute KMS...');
-      try {
-        const wallet = ethers.Wallet.fromPhrase(process.env.MNEMONIC);
-        console.log(`✅ TEE Identity Active: ${wallet.address}`);
-        return wallet;
-      } catch (error) {
-        console.error('❌ Failed to derive wallet from MNEMONIC:', (error as Error).message);
-        throw new Error('Critical: Invalid MNEMONIC provided by KMS');
-      }
+    // CRITICAL: Validate KMS injection
+    const mnemonic = process.env.MNEMONIC;
+    if (!mnemonic || mnemonic.split(' ').length !== 12) {
+      throw new Error('KMS_INJECTION_FAILURE: MNEMONIC invalid or missing');
     }
 
-    // 2. Fallback: Local Development / Simulation Mode
-    console.warn('⚠️  MNEMONIC not found. Using local file-based key (NOT SECURE FOR PRODUCTION).');
-    
-    try {
-      if (fs.existsSync(KEY_FILE)) {
-        console.log('📂 Loading existing local key...');
-        const data = fs.readFileSync(KEY_FILE, 'utf8');
-        const keyData = JSON.parse(data);
-        return new ethers.Wallet(keyData.privateKey);
-      }
-    } catch (error) {
-      console.warn('⚠️  Failed to load local key, generating new one:', (error as Error).message);
-    }
+    this.wallet = ethers.Wallet.fromPhrase(mnemonic);
 
-    console.log('🎲 Generating new local key for simulation...');
-    const randomWallet = ethers.Wallet.createRandom();
-    
-    // Save locally for persistence during dev
-    try {
-      if (!fs.existsSync(SEALED_PATH)) {
-        fs.mkdirSync(SEALED_PATH, { recursive: true });
-      }
-      const keyData = {
-        privateKey: randomWallet.privateKey,
-        address: randomWallet.address,
-        createdAt: new Date().toISOString()
-      };
-      fs.writeFileSync(KEY_FILE, JSON.stringify(keyData, null, 2), { mode: 0o600 });
-      console.log(`💾 Local Identity saved: ${randomWallet.address}`);
-    } catch (error) {
-      console.error('❌ Failed to save local key:', (error as Error).message);
-    }
-
-    return randomWallet;
-  }
-
-  public getAddress(): string {
-    return this.wallet.address;
-  }
-
-  public getPublicKey(): string {
-    return this.wallet.signingKey.publicKey;
-  }
-
-  public async signMessage(message: string | Uint8Array): Promise<string> {
-    return this.wallet.signMessage(message);
-  }
-
-  public async signTypedData(
-    domain: ethers.TypedDataDomain,
-    types: Record<string, ethers.TypedDataField[]>,
-    value: Record<string, any>
-  ): Promise<string> {
-    return this.wallet.signTypedData(domain, types, value);
-  }
-
-  /**
-   * Simulates SGX Remote Attestation
-   * In production, this calls the SGX hardware to generate a Quote
-   */
-  public getAttestationQuote(): { quote: string; publicKey: string } {
-    // Mock quote for hackathon MVP
-    // Real implementation would use: sgx_get_quote(...)
-    return {
-      quote: Buffer.from('MOCK_SGX_QUOTE_PROOF_OF_TEE_EXECUTION').toString('base64'),
-      publicKey: this.getPublicKey()
+    // EIP-712 Domain Configuration
+    // Uses real contract address injected via env
+    this.domain = {
+      name: "RTFM-Sovereign",
+      version: "1",
+      chainId: 11155111, // Sepolia
+      verifyingContract: process.env.CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000"
     };
   }
 
-  public isReady(): boolean {
-    try {
-      return !!this.wallet && !!this.wallet.address && !!this.wallet.signingKey;
-    } catch {
-      return false;
+  getAddress(): string { return this.wallet.address; }
+
+  // Helper for /identity endpoint (mock quote for hackathon)
+  getAttestationQuote(): { quote: string; publicKey: string } {
+    return {
+      quote: Buffer.from('MOCK_SGX_QUOTE_PROOF_OF_TEE_EXECUTION').toString('base64'),
+      publicKey: this.wallet.signingKey.publicKey
+    };
+  }
+
+  async signAttestation(data: AttestationData): Promise<string> {
+    // Input validation
+    if (data.score < 0 || data.score > 100) throw new Error("INVALID_SCORE");
+    if (data.deadline < Math.floor(Date.now()/1000)) throw new Error("EXPIRED_DEADLINE");
+
+    // Critical: Use signTypedData, NOT signMessage
+    const signature = await this.wallet.signTypedData(this.domain, TYPES, data);
+
+    // Verify self-recoverable (paranoid check)
+    const recovered = ethers.verifyTypedData(this.domain, TYPES, data, signature);
+    if (recovered.toLowerCase() !== this.wallet.address.toLowerCase()) {
+      throw new Error("SIGNATURE_CORRUPTION");
     }
+
+    return signature; // 0x + r(64) + s(64) + v(2) = 132 chars
   }
 }

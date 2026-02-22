@@ -12,19 +12,19 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
 # Install dependencies
-RUN npm install -g pnpm && pnpm install
+RUN npm install
 
 # Copy source code
 COPY . .
 
 # Build TypeScript
-RUN pnpm build
+RUN npm run build
 
 # Expose port
 EXPOSE 3000
 
-# Start command (will be overridden by Gramine)
+# Start command
 CMD ["node", "dist/server.js"]

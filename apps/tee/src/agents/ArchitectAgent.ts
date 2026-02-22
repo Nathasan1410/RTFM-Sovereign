@@ -14,13 +14,8 @@ export interface Challenge extends LLMChallenge {
 export class ArchitectAgent {
   private llmService: LLMService;
 
-  constructor() {
-    // Initialize LLM Service with env vars
-    // In production these come from EigenCompute secrets
-    this.llmService = new LLMService(
-      process.env.EIGENAI_API_KEY || 'mock-eigen-key',
-      process.env.GROQ_API_KEY || 'mock-groq-key'
-    );
+  constructor(llmService: LLMService) {
+    this.llmService = llmService;
     agentLogger.info({ type: 'ArchitectAgent' }, 'ArchitectAgent initialized with LLM Service');
   }
 

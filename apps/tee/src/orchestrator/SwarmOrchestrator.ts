@@ -1,7 +1,6 @@
 import pMap from 'p-map';
 import { ArchitectAgent, Challenge } from '../agents/ArchitectAgent';
 import { SpecialistAgent, Answer, EvaluationResult } from '../agents/SpecialistAgent';
-import { CerebrasService } from '../services/CerebrasService';
 import { agentLogger } from '../utils/logger';
 
 export interface OrchestratorConfig {
@@ -30,7 +29,6 @@ export class SwarmOrchestrator {
   constructor(
     private readonly architectAgent: ArchitectAgent,
     private readonly specialistAgent: SpecialistAgent,
-    private readonly cerebrasService: CerebrasService,
     config?: Partial<OrchestratorConfig>
   ) {
     this.config = { ...this.DEFAULT_CONFIG, ...config };
@@ -209,70 +207,6 @@ export class SwarmOrchestrator {
       return result;
     } catch (error) {
       agentLogger.error({ error }, 'Full workflow orchestration failed');
-      throw error;
-    }
-  }
-
-  public async orchestrateCerebrasCalls(
-    prompts: string[],
-    maxTokens?: number,
-    temperature?: number
-  ): Promise<string[]> {
-    const startTime = Date.now();
-
-    agentLogger.info(
-      { count: prompts.length },
-      'Orchestrating Cerebras API calls'
-    );
-
-    try {
-      const requests = prompts.map((prompt) => ({
-        prompt,
-        maxTokens,
-        temperature,
-      }));
-
-      const responses = await pMap(
-        requests,
-        async (request) => {
-          return await this.callCerebrasWithRetry(request, 0);
-        },
-        {
-          concurrency: Math.min(this.config.maxConcurrency, 2),
-        }
-      ) as string[];
-
-      const duration = Date.now() - startTime;
-
-      agentLogger.info(
-        { count: responses.length, durationMs: duration },
-        'Cerebras calls orchestration completed'
-      );
-
-      return responses;
-    } catch (error) {
-      agentLogger.error({ error }, 'Cerebras calls orchestration failed');
-      throw error;
-    }
-  }
-
-  private async callCerebrasWithRetry(
-    request: { prompt: string; maxTokens?: number; temperature?: number },
-    attempt: number = 0
-  ): Promise<string> {
-    try {
-      return await this.cerebrasService.generateResponse(request);
-    } catch (error) {
-      agentLogger.warn(
-        { attempt, error: (error as Error).message },
-        'Cerebras call attempt failed'
-      );
-
-      if (attempt < this.config.retryAttempts) {
-        await this.sleep(1000 * (attempt + 1));
-        return this.callCerebrasWithRetry(request, attempt + 1);
-      }
-
       throw error;
     }
   }

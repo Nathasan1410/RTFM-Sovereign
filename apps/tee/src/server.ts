@@ -3,7 +3,7 @@ import { TEEIdentity } from './crypto/signer';
 import { logger, healthLogger, agentLogger } from './utils/logger';
 import { ArchitectAgent } from './agents/ArchitectAgent';
 import { SpecialistAgent, Answer } from './agents/SpecialistAgent';
-import { CerebrasService } from './services/CerebrasService';
+import { LLMService } from './services/llm/LLMService';
 import { SwarmOrchestrator } from './orchestrator/SwarmOrchestrator';
 import { GradingService, ExpectedAnswer } from './services/GradingService';
 import { SignService } from './crypto/sign';
@@ -16,10 +16,16 @@ const port = process.env.PORT || 3000;
 const teeIdentity = new TEEIdentity();
 const signService = new SignService(teeIdentity);
 const gradingService = new GradingService();
-const architectAgent = new ArchitectAgent();
+const llmService = new LLMService(
+  process.env.CEREBRAS_API_KEY || '',
+  process.env.GROQ_API_KEY || '',
+  process.env.BRAVE_API_KEY || '',
+  process.env.HYPERBOLIC_API_KEY || '',
+  process.env.EIGENAI_API_KEY || ''
+);
+const architectAgent = new ArchitectAgent(llmService);
 const specialistAgent = new SpecialistAgent();
-const cerebrasService = new CerebrasService(process.env.CEREBRAS_API_KEY || '');
-const orchestrator = new SwarmOrchestrator(architectAgent, specialistAgent, cerebrasService);
+const orchestrator = new SwarmOrchestrator(architectAgent, specialistAgent);
 
 app.use(express.json());
 

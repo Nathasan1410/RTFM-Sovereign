@@ -35,6 +35,7 @@ export class LLMService {
     }
 
     // Let's restructure to support the list
+    if (cerebrasKey) this.providers.push(new EigenAIProvider(cerebrasKey));
     if (groqKey) this.providers.push(new GroqProvider(groqKey));
     if (braveKey) this.providers.push(new BraveProvider(braveKey));
     if (hyperbolicKey) this.providers.push(new HyperbolicProvider(hyperbolicKey));

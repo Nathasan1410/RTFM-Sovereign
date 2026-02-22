@@ -1,24 +1,42 @@
+
 import axios from 'axios';
 import { LLMProvider, Challenge } from './types';
 import { logger } from '../../utils/logger';
+import { privateKeyToAccount } from 'viem/accounts';
+import { createWalletClient, http } from 'viem';
+import { mainnet } from 'viem/chains';
 
 export class EigenAIProvider implements LLMProvider {
   name = 'EigenAI';
-  private endpoint = process.env.EIGENAI_ENDPOINT || 'https://eigenai-sepolia.eigencloud.xyz/v1/chat/completions';
-  private apiKey: string;
+  private endpoint = 'https://determinal-api.eigenarcade.com/api/chat/completions';
+  private grantEndpoint = 'https://determinal-api.eigenarcade.com/message';
+  private privateKey: `0x${string}`;
+  private walletAddress: string;
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(privateKey: string) {
+    this.privateKey = privateKey as `0x${string}`;
+    const account = privateKeyToAccount(this.privateKey);
+    this.walletAddress = account.address;
   }
 
   async isHealthy(): Promise<boolean> {
     try {
-      // Quick ping or model list check
-      // For now assume healthy if key exists
-      return !!this.apiKey;
+      // Check if we have a grant
+      const response = await axios.get(`https://determinal-api.eigenarcade.com/checkGrant?address=${this.walletAddress}`);
+      return response.data.hasGrant && response.data.tokenCount > 0;
     } catch {
       return false;
     }
+  }
+
+  private async getGrantMessage(): Promise<string> {
+    const response = await axios.get(`${this.grantEndpoint}?address=${this.walletAddress}`);
+    return response.data.message;
+  }
+
+  private async signMessage(message: string): Promise<string> {
+    const account = privateKeyToAccount(this.privateKey);
+    return await account.signMessage({ message });
   }
 
   async generateChallenge(userAddress: string, topic: string, seed: number): Promise<Challenge> {
@@ -28,31 +46,41 @@ export class EigenAIProvider implements LLMProvider {
     
     try {
       logger.info({ provider: this.name, user: userAddress, topic, seed }, 'Requesting generation');
+
+      // 1. Get Grant Message
+      const grantMessage = await this.getGrantMessage();
       
+      // 2. Sign Grant Message
+      const grantSignature = await this.signMessage(grantMessage);
+
+      // 3. Make API Call
       const response = await axios.post(
         this.endpoint,
         {
-          model: 'gpt-oss-120b-f16', // Placeholder, update if needed
           messages: [
             { role: 'system', content: 'You are a deterministic technical interviewer. Output valid JSON only.' },
             { role: 'user', content: prompt }
           ],
-          seed: seed,
-          temperature: 0.1,
+          model: 'gpt-oss-120b-f16',
           max_tokens: 4000,
-          response_format: { type: 'json_object' }
+          seed: seed,
+          grantMessage,
+          grantSignature,
+          walletAddress: this.walletAddress
         },
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 30000 // 30s timeout per spec
+          timeout: 60000 // Extended timeout
         }
       );
 
       const content = response.data.choices[0].message.content;
-      const challenge = JSON.parse(content);
+      
+      // Clean up markdown if present
+      const jsonContent = content.replace(/```json\n?|\n?```/g, '').trim();
+      const challenge = JSON.parse(jsonContent);
       
       // Basic validation
       if (!challenge.modules || challenge.modules.length !== 7) {

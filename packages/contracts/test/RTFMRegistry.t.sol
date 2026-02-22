@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
 import "../src/RTFMVerifiableRegistry.sol";
@@ -42,10 +42,10 @@ contract RTFMRegistryTest is Test {
         vm.startPrank(user);
         registry.stakeForChallenge{value: 0.001 ether}("Solidity");
         
-        (uint128 amount,,, bytes20 hash, RTFMVerifiableRegistry.State state, ) = registry.getStakeDetails(user, "Solidity");
+        IRTFMSovereign.StakeInfo memory stake = registry.getStakeDetails(user, "Solidity");
         
-        assertEq(amount, 0.001 ether);
-        assertEq(uint8(state), uint8(RTFMVerifiableRegistry.State.Staked));
+        assertEq(stake.amount, 0.001 ether);
+        assertEq(uint8(stake.state), uint8(IRTFMSovereign.State.Staked));
         vm.stopPrank();
     }
 

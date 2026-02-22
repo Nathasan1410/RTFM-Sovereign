@@ -40,8 +40,7 @@ export class SwarmOrchestrator {
   public async orchestrateChallengeGeneration(
     userAddress: string,
     topics: string[],
-    attemptNumber: number = 1,
-    userLevel?: number
+    attemptNumber: number = 1
   ): Promise<Challenge[]> {
     const startTime = Date.now();
 
@@ -57,8 +56,7 @@ export class SwarmOrchestrator {
           return await this.generateChallengeWithRetry(
             userAddress,
             topic,
-            attemptNumber,
-            userLevel
+            attemptNumber
           );
         },
         {
@@ -84,15 +82,13 @@ export class SwarmOrchestrator {
     userAddress: string,
     topic: string,
     attemptNumber: number,
-    userLevel?: number,
     attempt: number = 0
   ): Promise<Challenge> {
     try {
       return await this.architectAgent.generateChallenge(
         userAddress,
         topic,
-        attemptNumber,
-        userLevel
+        attemptNumber
       );
     } catch (error) {
       agentLogger.warn(
@@ -106,7 +102,6 @@ export class SwarmOrchestrator {
           userAddress,
           topic,
           attemptNumber,
-          userLevel,
           attempt + 1
         );
       }
@@ -175,8 +170,7 @@ export class SwarmOrchestrator {
     userAddress: string,
     topics: string[],
     answers: Answer[],
-    attemptNumber: number = 1,
-    userLevel?: number
+    attemptNumber: number = 1
   ): Promise<OrchestrationResult> {
     const startTime = Date.now();
 
@@ -189,8 +183,7 @@ export class SwarmOrchestrator {
       const challenges = await this.orchestrateChallengeGeneration(
         userAddress,
         topics,
-        attemptNumber,
-        userLevel
+        attemptNumber
       );
 
       const evaluations = await this.orchestrateAnswerEvaluation(answers);

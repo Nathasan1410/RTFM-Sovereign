@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
+import '@rainbow-me/rainbowkit/styles.css';
+import { Providers } from '@/components/Providers';
 import { Header } from "@/components/header";
 import { StoreInitializer } from "@/components/store-initializer";
 import { OfflineBanner } from "@/components/offline-banner";
@@ -66,16 +68,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={geistMono.variable} suppressHydrationWarning>
       <body className="antialiased min-h-screen bg-background font-mono text-foreground flex flex-col">
-        <PwaProvider />
-        <StoreInitializer />
-        <OfflineBanner />
-        <CommandPalette />
-        <ShortcutsHelp />
-        <Header />
-        <ApiKeyWarningBanner />
-        <main className="flex-1 flex flex-col">
-          {children}
-        </main>
+        <Providers>
+          <PwaProvider />
+          <StoreInitializer />
+          <OfflineBanner />
+          <CommandPalette />
+          <ShortcutsHelp />
+          <Header />
+          <ApiKeyWarningBanner />
+          <main className="flex-1 flex flex-col">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

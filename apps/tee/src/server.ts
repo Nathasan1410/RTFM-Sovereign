@@ -46,7 +46,36 @@ app.get('/identity', (req, res) => {
   });
 });
 
-// ... (challenge generation endpoints remain same) ...
+/**
+ * GENERATE CHALLENGE ENDPOINT (Chunk 12)
+ * Generates deterministic AI challenge based on user + topic.
+ */
+app.post('/challenge/generate', async (req, res) => {
+  try {
+    const { userAddress, topic } = req.body;
+    if (!userAddress || !topic) return res.status(400).json({ error: 'Missing userAddress or topic' });
+
+    const challenge = await architectAgent.generateChallenge(userAddress, topic, 1);
+    
+    // Sanitize: Remove expectedKeywords before sending to client
+    const sanitizedChallenge = {
+        ...challenge,
+        modules: challenge.modules.map(m => ({
+            ...m,
+            questions: m.questions.map(q => {
+                // @ts-ignore
+                const { expectedKeywords, ...rest } = q; 
+                return rest;
+            })
+        }))
+    };
+
+    res.json(sanitizedChallenge);
+  } catch (error) {
+    agentLogger.error({ error: (error as Error).message }, 'Challenge generation failed');
+    res.status(500).json({ error: 'Generation failed' });
+  }
+});
 
 /**
  * ATTESTATION ENDPOINT (Chunk 11)
@@ -67,33 +96,32 @@ app.post('/attest', async (req, res) => {
 
     agentLogger.info({ userAddress, topic, challengeId }, 'Processing attestation request');
 
-    // 2. Retrieve Expected Answers (Mocking this part as it depends on storage)
-    // In production, this would fetch from a secure DB or memory cache populated by ArchitectAgent
-    // For now, we regenerate the challenge deterministically to get keywords
-    // This assumes the challenge was generated with attemptNumber 1 (default)
+    // 2. Re-generate Challenge (Deterministic)
+    // This fetches the "truth" from AI including expected keywords
     const challenge = await architectAgent.generateChallenge(userAddress, topic, 1);
     
-    // ArchitectAgent currently doesn't expose keywords directly in public interface
-    // So we'll use a heuristic or mock for this MVP step
-    // TODO: Refactor ArchitectAgent to return expected keywords in a verifiable way
-    const expectedAnswers: ExpectedAnswer[] = [
-      { keywords: ['concept', 'blockchain', 'decentralized'], weight: 30 },
-      { keywords: ['security', 'vulnerability', 'check'], weight: 30 },
-      { keywords: ['optimization', 'gas', 'memory'], weight: 20 },
-      { keywords: ['testing', 'unit', 'integration'], weight: 20 }
-    ];
+    // 3. Extract Grading Rubric
+    const expectedAnswers: ExpectedAnswer[] = [];
+    challenge.modules.forEach(m => {
+        m.questions.forEach(q => {
+            expectedAnswers.push({
+                keywords: q.expectedKeywords || [],
+                weight: q.expectedPoints || (m.weight / m.questions.length)
+            });
+        });
+    });
 
-    // 3. Grade Submission
+    // 4. Grade Submission
     const score = gradingService.gradeSubmission(answers, expectedAnswers);
     const passed = gradingService.isPassing(score);
 
     agentLogger.info({ userAddress, score, passed }, 'Grading complete');
 
-    // 4. Get Nonce & Set Deadline
+    // 5. Get Nonce & Set Deadline
     const nonce = signService.getNextNonce(userAddress);
     const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
 
-    // 5. Sign Attestation
+    // 6. Sign Attestation
     const signedAttestation = await signService.signAttestation({
       user: userAddress,
       topic,
@@ -102,7 +130,7 @@ app.post('/attest', async (req, res) => {
       deadline
     });
 
-    // 6. Return Response
+    // 7. Return Response
     res.json({
       success: true,
       score,

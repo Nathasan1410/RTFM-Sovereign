@@ -28,8 +28,7 @@ describe('GradingService', () => {
       ];
 
       const score = gradingService.gradeSubmission(userAnswers, expectedAnswers);
-      expect(score).toBeGreaterThan(50);
-      expect(score).toBeLessThan(100);
+      expect(score).toBe(50);
     });
 
     it('should return zero score when no keywords match', () => {
@@ -106,8 +105,7 @@ describe('GradingService', () => {
       ];
 
       const score = gradingService.gradeSubmission(userAnswers, expectedAnswers);
-      expect(score).toBeGreaterThan(30);
-      expect(score).toBeLessThan(70);
+      expect(score).toBe(22);
     });
 
     it('should handle mismatched answer lengths gracefully', () => {

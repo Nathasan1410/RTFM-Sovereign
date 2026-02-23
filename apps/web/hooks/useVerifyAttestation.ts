@@ -38,9 +38,25 @@ export function useVerifyAttestation(address: string, skill: string) {
     }
 
     if (!contractLoading && rawData) {
-      const [exists, score, timestamp, signature] = rawData as [boolean, bigint, bigint, string];
+      const data = rawData as unknown;
 
-      if (exists) {
+      if (!data) {
+        setAttestation({
+          exists: false,
+          score: 0,
+          timestamp: 0,
+          signature: '',
+          ipfsHash: '',
+          transactionHash: ''
+        });
+        setLoading(false);
+        return;
+      }
+
+      const dataArray = Array.isArray(data) ? data : [];
+
+      if (dataArray.length >= 3) {
+        const [score, timestamp, signature] = dataArray as unknown as readonly [bigint, bigint, string];
         const ipfsHash = signature.substring(0, 46);
 
         setAttestation({

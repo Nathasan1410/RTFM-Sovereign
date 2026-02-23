@@ -1,20 +1,6 @@
 import request from 'supertest'
 import express from 'express'
 
-jest.mock('../../services/eigen-ai', () => ({
-  analyzeCode: jest.fn().mockResolvedValue({
-    quality: 85,
-    functionality: 90,
-    bestPractices: 80,
-    innovation: 85,
-    feedback: ['Good structure', 'Clean code']
-  })
-}))
-
-jest.mock('../../services/ipfs', () => ({
-  uploadToIPFS: jest.fn().mockResolvedValue({ ipfsHash: 'QmTestHash123' })
-}))
-
 const app = express()
 app.use(express.json())
 

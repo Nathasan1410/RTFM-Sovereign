@@ -29,9 +29,8 @@ export function EmptyState({ address, skill }: EmptyStateProps) {
           <h2 className="text-2xl font-bold mb-3">No Attestation Found</h2>
           <p className="text-muted-foreground max-w-md">
             {skill
-              ? `This address hasn't completed any challenges for "${skill}" yet.`
-              : 'This address hasn't completed any challenges yet.'}
-            {' '}Try a different skill or check if address is correct.
+              ? `This address hasn't completed any challenges for "${skill}" yet. Try a different skill or check if address is correct.`
+              : 'This address hasn\'t completed any challenges yet. Try a different skill or check if address is correct.'}
           </p>
         </div>
 

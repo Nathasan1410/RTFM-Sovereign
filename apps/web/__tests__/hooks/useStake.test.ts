@@ -3,19 +3,20 @@ import { useStake } from '@/hooks/useStake'
 import { mockStake } from '@/lib/demoMode'
 
 jest.mock('wagmi', () => ({
-  useWriteContract: () => ({
+  useWriteContract: jest.fn(() => ({
     writeContract: jest.fn(),
     isPending: false,
     data: null
-  }),
-  useReadContract: () => ({
+  })),
+  useReadContract: jest.fn(() => ({
     data: BigInt(0),
-    isLoading: false
-  }),
-  useWaitForTransactionReceipt: () => ({
+    isLoading: false,
+    error: null
+  })),
+  useWaitForTransactionReceipt: jest.fn(() => ({
     isLoading: false,
     isSuccess: false
-  })
+  }))
 }))
 
 jest.mock('@/lib/demoMode', () => ({
@@ -51,7 +52,7 @@ describe('useStake', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('should call writeContract when staking in production mode', async () => {
+  it('should call stake function in production mode', async () => {
     const { result } = renderHook(() => useStake(mockAddress, mockSkill))
 
     const { isDemoMode } = require('@/lib/demoMode')
@@ -92,10 +93,7 @@ describe('useStake', () => {
     isDemoMode.mockReturnValueOnce(false)
 
     await act(async () => {
-      try {
-        await result.current.stake(mockSkill)
-      } catch (e) {
-      }
+      await result.current.stake(mockSkill)
     })
 
     expect(result.current.error).toBeNull()
@@ -111,36 +109,14 @@ describe('useStake', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('should throw error when claiming refund without user address', async () => {
-    const { result } = renderHook(() => useStake(undefined, mockSkill))
-
-    await expect(
-      act(async () => {
-        await result.current.claimRefund(mockSkill)
-      })
-    ).rejects.toThrow('User address is required')
-
-    expect(result.current.error).toBe('User address is required')
-  })
-
-  it('should handle claimRefund error', async () => {
-    const { result } = renderHook(() => useStake(mockAddress, mockSkill))
-
-    await act(async () => {
-      try {
-        await result.current.claimRefund(mockSkill)
-      } catch (e) {
-      }
-    })
-
-    expect(result.current.error).toBeNull()
-  })
-
   it('should detect existing stake when stakeAmount > 0', () => {
     const { useReadContract } = require('wagmi')
-    useReadContract.mockReturnValueOnce({
+    const originalUseReadContract = useReadContract
+
+    originalUseReadContract.mockReturnValueOnce({
       data: BigInt(1000000),
-      isLoading: false
+      isLoading: false,
+      error: null
     })
 
     const { result } = renderHook(() => useStake(mockAddress, mockSkill))

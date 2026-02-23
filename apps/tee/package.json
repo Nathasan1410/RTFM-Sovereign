@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "test:crypto": "tsx test/signer.spec.ts",
-    "test-contract-integration": "tsx test-contract-integration.ts"
+    "test-contract-integration": "tsx test-contract-integration.ts",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
@@ -27,8 +29,14 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/pino": "^7.0.5",
+    "@types/supertest": "^6.0.3",
+    "eslint-plugin-security": "^4.0.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.0.0",
     "typescript": "^5"
   }

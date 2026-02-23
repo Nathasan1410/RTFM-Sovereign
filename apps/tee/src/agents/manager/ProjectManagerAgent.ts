@@ -4,15 +4,31 @@ import { SessionState, SessionStateSchema, GoldenPath, DelegationPayload, Delega
 import { agentLogger } from '../../utils/logger';
 import { SwarmAgent } from '../swarm/SwarmAgent';
 import { JudgingEngine, JudgingRequest } from '../../judging/JudgingEngine';
+import { ContractIntegration, EIP712Signer, EIP712AttestationData } from '../../contracts';
+import { IPFSService, IPFSSnapshot } from '../../services/ipfs';
 
 export class ProjectManagerAgent {
   private sessions: Map<string, SessionState> = new Map();
   private swarmAgent: SwarmAgent;
   private judgingEngine: JudgingEngine;
+  private contractIntegration: ContractIntegration | null = null;
+  private eip712Signer: EIP712Signer | null = null;
+  private ipfsService: IPFSService | null = null;
 
   constructor(swarmAgent: SwarmAgent, judgingEngine: JudgingEngine) {
     this.swarmAgent = swarmAgent;
     this.judgingEngine = judgingEngine;
+  }
+
+  public initializeContractIntegration(
+    contractIntegration: ContractIntegration,
+    eip712Signer: EIP712Signer,
+    ipfsService: IPFSService
+  ): void {
+    this.contractIntegration = contractIntegration;
+    this.eip712Signer = eip712Signer;
+    this.ipfsService = ipfsService;
+    agentLogger.info({ signer: eip712Signer.getSignerAddress() }, 'Contract integration initialized');
   }
 
   public async createSession(userAddress: string, goldenPath: GoldenPath): Promise<string> {
@@ -179,5 +195,194 @@ export class ProjectManagerAgent {
 
   public getAllSessions(): SessionState[] {
     return Array.from(this.sessions.values());
+  }
+
+  public async recordMilestoneOnChain(
+    sessionId: string,
+    milestoneId: number
+  ): Promise<any> {
+    if (!this.contractIntegration) {
+      throw new Error('Contract integration not initialized');
+    }
+
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+
+    agentLogger.info({ sessionId, milestoneId }, 'Recording milestone on-chain');
+
+    try {
+      const hasStake = await this.contractIntegration.verifyStake(
+        session.user_address,
+        session.project.golden_path.project_title
+      );
+
+      if (!hasStake) {
+        agentLogger.warn({ sessionId }, 'No active stake found');
+        return { success: false, error: 'NO_STAKE' };
+      }
+
+      const tx = await this.contractIntegration.recordMilestone(
+        session.user_address,
+        session.project.golden_path.project_title,
+        milestoneId
+      );
+
+      session.staking.milestone_checkpoints.push({
+        milestone_id: milestoneId,
+        checkpointed_at: new Date().toISOString(),
+        tx_hash: tx.hash
+      });
+
+      agentLogger.info({ sessionId, milestoneId, txHash: tx.hash }, 'Milestone recorded on-chain');
+      return { success: true, txHash: tx.hash };
+    } catch (error) {
+      agentLogger.error({ sessionId, milestoneId, error }, 'Failed to record milestone');
+      return { success: false, error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' };
+    }
+  }
+
+  public async submitFinalAttestation(
+    sessionId: string
+  ): Promise<any> {
+    if (!this.contractIntegration || !this.eip712Signer || !this.ipfsService) {
+      throw new Error('Contract integration not fully initialized');
+    }
+
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+
+    const scores = session.verification.milestone_scores;
+    if (scores.length === 0) {
+      throw new Error('No milestone scores available');
+    }
+
+    const finalScore = Math.round(
+      scores.reduce((sum, s) => sum + s.score, 0) / scores.length
+    );
+
+    agentLogger.info({ sessionId, finalScore }, 'Submitting final attestation');
+
+    try {
+      const ipfsSnapshot: IPFSSnapshot = {
+        project: session.project.golden_path.project_title,
+        user: session.user_address,
+        milestones: scores.map(s => ({
+          id: s.milestone_id,
+          code: '',
+          score: s.score,
+          feedback: '',
+          timestamp: new Date(s.verified_at).getTime()
+        })),
+        final_score: finalScore,
+        attestation_tx: null
+      };
+
+      const ipfsHash = await this.ipfsService.uploadCodeSnapshot(ipfsSnapshot);
+
+      const attestationData: EIP712AttestationData = {
+        user: session.user_address,
+        skill: session.project.golden_path.project_title,
+        score: finalScore,
+        nonce: Math.floor(Date.now() / 1000),
+        ipfsHash: ipfsHash
+      };
+
+      const signature = await this.eip712Signer.signAttestation(attestationData);
+
+      const milestoneScores = scores.map(s => s.score);
+
+      const tx = await this.contractIntegration.submitAttestation(
+        session.user_address,
+        session.project.golden_path.project_title,
+        finalScore,
+        signature,
+        ipfsHash,
+        milestoneScores
+      );
+
+      session.verification.attestation_tx = tx.hash;
+      session.verification.ipfs_hash = ipfsHash;
+      session.verification.final_score = finalScore;
+      session.verification.attested_at = new Date().toISOString();
+
+      agentLogger.info({ 
+        sessionId, 
+        finalScore, 
+        ipfsHash, 
+        txHash: tx.hash 
+      }, 'Attestation submitted successfully');
+
+      return {
+        success: true,
+        txHash: tx.hash,
+        ipfsHash,
+        finalScore
+      };
+    } catch (error) {
+      agentLogger.error({ sessionId, error }, 'Failed to submit attestation');
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' 
+      };
+    }
+  }
+
+  public async claimRefundForUser(
+    sessionId: string
+  ): Promise<any> {
+    if (!this.contractIntegration) {
+      throw new Error('Contract integration not initialized');
+    }
+
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+
+    if (session.staking.refund_claimed) {
+      agentLogger.warn({ sessionId }, 'Refund already claimed');
+      return { success: false, error: 'ALREADY_CLAIMED' };
+    }
+
+    if (!session.verification.final_score) {
+      throw new Error('No final score available for refund calculation');
+    }
+
+    agentLogger.info({ sessionId }, 'Claiming refund');
+
+    try {
+      const finalScore = session.verification.final_score;
+      const tx = await this.contractIntegration.claimRefund(
+        session.user_address,
+        session.project.golden_path.project_title,
+        finalScore
+      );
+
+      session.staking.refund_claimed = true;
+      session.staking.refunded_at = new Date().toISOString();
+      session.staking.refund_tx = tx.hash;
+
+      const stakeAmount = 0.001;
+      const refundPercent = finalScore >= 70 ? 0.8 : 0.2;
+      const refundAmount = (stakeAmount * refundPercent).toFixed(6);
+
+      agentLogger.info({ 
+        sessionId, 
+        finalScore, 
+        refundAmount, 
+        txHash: tx.hash 
+      }, 'Refund claimed successfully');
+
+      return {
+        success: true,
+        txHash: tx.hash,
+        refundAmount,
+        finalScore
+      };
+    } catch (error) {
+      agentLogger.error({ sessionId, error }, 'Failed to claim refund');
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR' 
+      };
+    }
   }
 }

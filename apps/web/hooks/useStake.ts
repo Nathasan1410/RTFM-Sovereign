@@ -1,60 +1,79 @@
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, useBalance } from 'wagmi'
-import { parseEther } from 'viem'
-import { REGISTRY_ABI } from '../config/abi'
+'use client'
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`
+import { useState, useCallback } from 'react'
+import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
+import { parseEther, type Address } from 'viem'
+import { SKILL_STAKING_ABI, SKILL_STAKING_ADDRESS } from '@/config/contracts'
+import { isDemoMode, mockStake } from '@/lib/demoMode'
 
-export interface StakeResult {
-  stake: () => void
-  isPending: boolean
-  isConfirming: boolean
-  isSuccess: boolean
-  hash: `0x${string}` | undefined
-  error: Error | null
-}
+export function useStake(user?: Address, skill?: string) {
+  const { data: hash, writeContract, isPending: isWriting } = useWriteContract()
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })
 
-export function useStake(topic: string): StakeResult {
-  const { address } = useAccount()
-  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract()
-  
-  const { isLoading: isConfirming, isSuccess, error: receiptError } = useWaitForTransactionReceipt({
-    hash,
+  const { data: stakeAmount } = useReadContract({
+    address: SKILL_STAKING_ADDRESS,
+    abi: SKILL_STAKING_ABI,
+    functionName: 'verifyStake',
+    args: user && skill ? [user, skill] : undefined,
+    query: {
+      enabled: !!user && !!skill
+    }
   })
 
-  // Balance Check (Optional Pre-flight)
-  const { data: balance } = useBalance({ address })
+  const [error, setError] = useState<string | null>(null)
 
-  const stake = () => {
-    if (!address) {
-      alert("Please connect wallet first")
-      return
-    }
-    if (!topic) return
+  const stake = useCallback(async (skillToStake: string) => {
+    setError(null)
 
-    if (balance && balance.value < parseEther('0.001')) {
-      alert("Insufficient balance. You need 0.001 ETH + gas.")
-      return
+    try {
+      if (isDemoMode()) {
+        const mockResult = await mockStake(skillToStake)
+        return mockResult
+      }
+
+      writeContract({
+        address: SKILL_STAKING_ADDRESS,
+        abi: SKILL_STAKING_ABI,
+        functionName: 'stake',
+        args: [skillToStake],
+        value: parseEther('0.001')
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to stake'
+      setError(errorMessage)
+      throw err
     }
+  }, [writeContract])
+
+  const claimRefund = useCallback(async (skillToClaim: string) => {
+    if (!user) {
+      setError('User address is required')
+      throw new Error('User address is required')
+    }
+
+    setError(null)
 
     try {
       writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: REGISTRY_ABI,
-        functionName: 'stakeForChallenge',
-        args: [topic],
-        value: parseEther('0.001'),
+        address: SKILL_STAKING_ADDRESS,
+        abi: SKILL_STAKING_ABI,
+        functionName: 'claimRefund',
+        args: [user, skillToClaim]
       })
     } catch (err) {
-      console.error("Stake failed", err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to claim refund'
+      setError(errorMessage)
+      throw err
     }
-  }
+  }, [writeContract, user])
 
   return {
     stake,
-    isPending,
-    isConfirming,
-    isSuccess,
-    hash,
-    error: writeError || receiptError
+    claimRefund,
+    hasStake: stakeAmount !== undefined && (stakeAmount as bigint) > BigInt(0),
+    stakeAmount,
+    isPending: isWriting || isConfirming,
+    error,
+    hash
   }
 }

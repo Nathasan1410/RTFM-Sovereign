@@ -3,10 +3,8 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther } from 'viem'
-import { REGISTRY_ABI } from '@/config/abi'
+import { SKILL_STAKING_ABI, SKILL_STAKING_ADDRESS } from '@/config/contracts'
 import { useEffect } from 'react'
-
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`
 
 export default function StakePage() {
   const { topic } = useParams<{ topic: string }>()
@@ -30,9 +28,9 @@ export default function StakePage() {
     if (!topic) return
     
     writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: REGISTRY_ABI,
-      functionName: 'stakeForChallenge',
+      address: SKILL_STAKING_ADDRESS,
+      abi: SKILL_STAKING_ABI,
+      functionName: 'stake',
       args: [topic],
       value: parseEther('0.001'),
     })

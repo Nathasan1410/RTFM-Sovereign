@@ -17,23 +17,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RTFM-GPT | Read The F*cking Manual",
-  description: "AI-generated learning roadmaps that force you to read official documentation. No spoon-feeding. No shortcuts.",
-  keywords: ["learning", "documentation", "programming", "roadmap", "tutorial", "coding", "self-study"],
-  authors: [{ name: "RTFM-GPT" }],
+  title: "RTFM-Sovereign | Verifiable Skill Protocol",
+  description: "Prove your coding skills with cryptographic attestations on EigenLayer. Stake, Build, Prove - The future of skill verification.",
+  keywords: ["skill-attestation", "web3", "blockchain", "eigenlayer", "learning", "code-challenge", "credential-verification"],
+  authors: [{ name: "RTFM-Sovereign" }],
   robots: "index, follow",
-  metadataBase: new URL("https://rtfm-gpt.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://rtfm-sovereign.vercel.app"),
   openGraph: {
-    title: "RTFM-GPT | Read The F*cking Manual",
-    description: "AI-generated learning roadmaps that force you to read official documentation. No spoon-feeding. No shortcuts.",
+    title: "RTFM-Sovereign",
+    description: "Stake, Build, Prove. The future of skill verification with cryptographic attestations on-chain.",
     type: "website",
-    url: "https://rtfm-gpt.vercel.app", // Placeholder, update with actual domain
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://rtfm-sovereign.vercel.app",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "RTFM-GPT",
+        alt: "RTFM-Sovereign - Verifiable Skill Protocol",
       },
     ],
   },

@@ -8,14 +8,16 @@
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
-    "test:crypto": "tsx test/signer.spec.ts"
+    "test:crypto": "tsx test/signer.spec.ts",
+    "test-contract-integration": "tsx test-contract-integration.ts"
   },
   "dependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
-    "axios": "^1.6.0",
+    "axios": "^1.13.5",
     "dotenv": "^17.3.1",
     "ethers": "^6.13.0",
     "express": "^4.18.2",
+    "form-data": "^4.0.5",
     "openai": "^6.22.0",
     "p-map": "^7.0.0",
     "pino": "^9.0.0",

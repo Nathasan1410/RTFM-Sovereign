@@ -1,12 +1,12 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useAccount } from 'wagmi'
 
 const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
 
-export default function LoadingPage() {
+function LoadingPageContent() {
   const searchParams = useSearchParams()
   const topic = searchParams.get('topic')
   const router = useRouter()
@@ -80,5 +80,13 @@ export default function LoadingPage() {
         Powered by EigenAI & Groq Fallback Layer
       </p>
     </div>
+  )
+}
+
+export default function LoadingPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]">Loading...</div>}>
+      <LoadingPageContent />
+    </Suspense>
   )
 }

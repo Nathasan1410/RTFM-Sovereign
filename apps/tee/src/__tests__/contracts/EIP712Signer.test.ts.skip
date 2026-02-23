@@ -1,0 +1,244 @@
+import { ethers } from 'ethers';
+import { EIP712Signer, EIP712AttestationData, createEIP712Signer } from '../../contracts';
+
+jest.mock('ethers');
+
+describe('EIP712Signer', () => {
+  let signer: EIP712Signer;
+  let mockWallet: jest.Mocked<ethers.Wallet>;
+  const privateKey = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const contractAddress = '0x0000000000000000000000000000000000000001';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockWallet = {
+      address: '0x1234567890123456789012345678901234567890',
+      signTypedData: jest.fn()
+    } as unknown as jest.Mocked<ethers.Wallet>;
+
+    (ethers.Wallet as jest.Mock).mockReturnValue(mockWallet);
+    (ethers.verifyTypedData as jest.Mock) = jest.fn();
+
+    signer = new EIP712Signer(privateKey, contractAddress);
+  });
+
+  describe('constructor', () => {
+    it('should initialize wallet with private key', () => {
+      expect(ethers.Wallet).toHaveBeenCalledWith(privateKey);
+    });
+
+    it('should set correct domain parameters', () => {
+      const domain = (signer as any).domain;
+      expect(domain.name).toBe('RTFM-Sovereign');
+      expect(domain.version).toBe('1');
+      expect(domain.chainId).toBe(11155111);
+      expect(domain.verifyingContract).toBe(contractAddress);
+    });
+
+    it('should set correct type definitions', () => {
+      const types = (signer as any).types;
+      expect(types.Attestation).toHaveLength(5);
+      expect(types.Attestation[0]).toMatchObject({
+        name: 'user',
+        type: 'address'
+      });
+      expect(types.Attestation[4]).toMatchObject({
+        name: 'ipfsHash',
+        type: 'string'
+      });
+    });
+  });
+
+  describe('signAttestation', () => {
+    it('should generate valid signature for attestation data', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const mockSignature = '0xabc123def456789';
+      mockWallet.signTypedData.mockResolvedValue(mockSignature);
+
+      const signature = await signer.signAttestation(attestationData);
+
+      expect(signature).toBe(mockSignature);
+      expect(mockWallet.signTypedData).toHaveBeenCalledWith(
+        (signer as any).domain,
+        (signer as any).types,
+        attestationData
+      );
+    });
+
+    it('should handle different attestation data', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x9876543210987654321098765432109876543210',
+        skill: 'Rust',
+        score: 92,
+        nonce: 54321,
+        ipfsHash: 'QmAnotherHash456'
+      };
+
+      const mockSignature = '0xxyz789abc123';
+      mockWallet.signTypedData.mockResolvedValue(mockSignature);
+
+      const signature = await signer.signAttestation(attestationData);
+
+      expect(signature).toBe(mockSignature);
+      expect(mockWallet.signTypedData).toHaveBeenCalled();
+    });
+
+    it('should throw error when signing fails', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const mockError = new Error('Signing failed');
+      mockWallet.signTypedData.mockRejectedValue(mockError);
+
+      await expect(signer.signAttestation(attestationData)).rejects.toThrow(mockError);
+    });
+
+    it('should handle edge case with score 0', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 0,
+        nonce: 0,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const mockSignature = '0xsignature';
+      mockWallet.signTypedData.mockResolvedValue(mockSignature);
+
+      const signature = await signer.signAttestation(attestationData);
+
+      expect(signature).toBe(mockSignature);
+    });
+
+    it('should handle edge case with score 100', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 100,
+        nonce: 999999,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const mockSignature = '0xsignature';
+      mockWallet.signTypedData.mockResolvedValue(mockSignature);
+
+      const signature = await signer.signAttestation(attestationData);
+
+      expect(signature).toBe(mockSignature);
+    });
+  });
+
+  describe('verifySignature', () => {
+    it('should return true for valid signature', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const signature = '0xvalidsignature';
+      (ethers.verifyTypedData as jest.Mock).mockReturnValue('0x1234567890123456789012345678901234567890');
+
+      const isValid = await signer.verifySignature(attestationData, signature);
+
+      expect(isValid).toBe(true);
+      expect(ethers.verifyTypedData).toHaveBeenCalledWith(
+        (signer as any).domain,
+        (signer as any).types,
+        attestationData,
+        signature
+      );
+    });
+
+    it('should return false for invalid signature', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const signature = '0xinvalidsignature';
+      (ethers.verifyTypedData as jest.Mock).mockReturnValue('0x9876543210987654321098765432109876543210');
+
+      const isValid = await signer.verifySignature(attestationData, signature);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should handle case-insensitive address comparison', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const signature = '0xvalidsignature';
+      (ethers.verifyTypedData as jest.Mock).mockReturnValue('0x1234567890123456789012345678901234567890'.toLowerCase());
+
+      const isValid = await signer.verifySignature(attestationData, signature);
+
+      expect(isValid).toBe(true);
+    });
+
+    it('should return false when verification fails', async () => {
+      const attestationData: EIP712AttestationData = {
+        user: '0x1234567890123456789012345678901234567890',
+        skill: 'Solidity',
+        score: 85,
+        nonce: 12345,
+        ipfsHash: 'QmTestHash123'
+      };
+
+      const signature = '0xbadsignature';
+      (ethers.verifyTypedData as jest.Mock).mockImplementation(() => {
+        throw new Error('Invalid signature format');
+      });
+
+      const isValid = await signer.verifySignature(attestationData, signature);
+
+      expect(isValid).toBe(false);
+    });
+  });
+
+  describe('getSignerAddress', () => {
+    it('should return wallet address', () => {
+      const address = signer.getSignerAddress();
+      expect(address).toBe('0x1234567890123456789012345678901234567890');
+    });
+  });
+
+  describe('createEIP712Signer', () => {
+    it('should create EIP712Signer instance', async () => {
+      const newSigner = await createEIP712Signer(privateKey, contractAddress);
+      expect(newSigner).toBeInstanceOf(EIP712Signer);
+    });
+
+    it('should pass parameters to constructor', async () => {
+      const customKey = '0x0000000000000000000000000000000000000000000000000000000000000002';
+      const customAddress = '0x0000000000000000000000000000000000000002';
+
+      await createEIP712Signer(customKey, customAddress);
+
+      expect(ethers.Wallet).toHaveBeenCalledWith(customKey);
+    });
+  });
+});

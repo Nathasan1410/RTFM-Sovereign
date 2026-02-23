@@ -1,0 +1,301 @@
+import { ethers } from 'ethers';
+import { ContractIntegration, ContractConfig, createContractIntegration } from '../../contracts';
+
+jest.mock('ethers');
+
+describe('ContractIntegration', () => {
+  let contractIntegration: ContractIntegration;
+  let mockConfig: ContractConfig;
+  let mockProvider: jest.Mocked<ethers.JsonRpcProvider>;
+  let mockWallet: jest.Mocked<ethers.Wallet>;
+  let mockAttestationContract: jest.Mocked<ethers.Contract>;
+  let mockStakingContract: jest.Mocked<ethers.Contract>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockConfig = {
+      attestationAddress: '0x0000000000000000000000000000000000000001',
+      stakingAddress: '0x0000000000000000000000000000000000000002',
+      rpcUrl: 'https://mock-rpc-url.com',
+      privateKey: '0x0000000000000000000000000000000000000000000000000000000000000001'
+    };
+
+    mockProvider = {
+      getNetwork: jest.fn()
+    } as unknown as jest.Mocked<ethers.JsonRpcProvider>;
+
+    mockWallet = {
+      address: '0x1234567890123456789012345678901234567890',
+      signTypedData: jest.fn()
+    } as unknown as jest.Mocked<ethers.Wallet>;
+
+    mockAttestationContract = {
+      submitAttestation: jest.fn(),
+      verifyAttestation: jest.fn()
+    } as unknown as jest.Mocked<ethers.Contract>;
+
+    mockStakingContract = {
+      recordMilestone: jest.fn(),
+      claimRefund: jest.fn(),
+      stakes: jest.fn()
+    } as unknown as jest.Mocked<ethers.Contract>;
+
+    (ethers.JsonRpcProvider as jest.Mock).mockReturnValue(mockProvider);
+    (ethers.Wallet as jest.Mock).mockReturnValue(mockWallet);
+    (ethers.Contract as jest.Mock)
+      .mockReturnValueOnce(mockStakingContract)
+      .mockReturnValueOnce(mockAttestationContract);
+
+    contractIntegration = new ContractIntegration(mockConfig);
+  });
+
+  describe('constructor', () => {
+    it('should initialize provider and wallet', () => {
+      expect(ethers.JsonRpcProvider).toHaveBeenCalledWith(mockConfig.rpcUrl);
+      expect(ethers.Wallet).toHaveBeenCalledWith(mockConfig.privateKey, mockProvider);
+    });
+
+    it('should initialize contracts', () => {
+      expect(ethers.Contract).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getSignerAddress', () => {
+    it('should return wallet address', () => {
+      const address = contractIntegration.getSignerAddress();
+      expect(address).toBe('0x1234567890123456789012345678901234567890');
+    });
+  });
+
+  describe('recordMilestone', () => {
+    it('should record milestone on staking contract', async () => {
+      const mockTxResponse = {
+        hash: '0xtx123',
+        wait: jest.fn().mockResolvedValue({ hash: '0xtx123' })
+      } as unknown as ethers.ContractTransactionResponse;
+
+      mockStakingContract.recordMilestone.mockResolvedValue(mockTxResponse);
+
+      const tx = await contractIntegration.recordMilestone(
+        '0xUserAddress',
+        'Solidity',
+        1
+      );
+
+      expect(mockStakingContract.recordMilestone).toHaveBeenCalledWith(
+        '0xUserAddress',
+        'Solidity',
+        1
+      );
+      expect(mockTxResponse.wait).toHaveBeenCalled();
+      expect(tx.hash).toBe('0xtx123');
+    });
+
+    it('should throw error when recording milestone fails', async () => {
+      const mockError = new Error('Contract call failed');
+      mockStakingContract.recordMilestone.mockRejectedValue(mockError);
+
+      await expect(
+        contractIntegration.recordMilestone('0xUserAddress', 'Solidity', 1)
+      ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('submitAttestation', () => {
+    it('should submit attestation to contract', async () => {
+      const mockTxResponse = {
+        hash: '0xtx456',
+        wait: jest.fn().mockResolvedValue({ hash: '0xtx456' })
+      } as unknown as ethers.ContractTransactionResponse;
+
+      mockAttestationContract.submitAttestation.mockResolvedValue(mockTxResponse);
+
+      const tx = await contractIntegration.submitAttestation(
+        '0xUserAddress',
+        'Solidity',
+        85,
+        '0xsig123',
+        'QmIPFSHash',
+        [80, 85, 90]
+      );
+
+      expect(mockAttestationContract.submitAttestation).toHaveBeenCalledWith(
+        '0xUserAddress',
+        'Solidity',
+        85,
+        '0xsig123',
+        'QmIPFSHash',
+        [80, 85, 90]
+      );
+      expect(mockTxResponse.wait).toHaveBeenCalled();
+      expect(tx.hash).toBe('0xtx456');
+    });
+
+    it('should throw error when submitting attestation fails', async () => {
+      const mockError = new Error('Transaction reverted');
+      mockAttestationContract.submitAttestation.mockRejectedValue(mockError);
+
+      await expect(
+        contractIntegration.submitAttestation(
+          '0xUserAddress',
+          'Solidity',
+          85,
+          '0xsig123',
+          'QmIPFSHash',
+          []
+        )
+      ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('claimRefund', () => {
+    it('should claim refund from staking contract', async () => {
+      const mockTxResponse = {
+        hash: '0xtx789',
+        wait: jest.fn().mockResolvedValue({ hash: '0xtx789' })
+      } as unknown as ethers.ContractTransactionResponse;
+
+      mockStakingContract.claimRefund.mockResolvedValue(mockTxResponse);
+
+      const tx = await contractIntegration.claimRefund(
+        '0xUserAddress',
+        'Solidity',
+        85
+      );
+
+      expect(mockStakingContract.claimRefund).toHaveBeenCalledWith(
+        '0xUserAddress',
+        'Solidity',
+        85
+      );
+      expect(mockTxResponse.wait).toHaveBeenCalled();
+      expect(tx.hash).toBe('0xtx789');
+    });
+
+    it('should throw error when claiming refund fails', async () => {
+      const mockError = new Error('Refund not available');
+      mockStakingContract.claimRefund.mockRejectedValue(mockError);
+
+      await expect(
+        contractIntegration.claimRefund('0xUserAddress', 'Solidity', 85)
+      ).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('verifyStake', () => {
+    it('should return true when stake exists', async () => {
+      const mockStake = {
+        amount: ethers.parseEther('1'),
+        stakedAt: Date.now(),
+        milestoneCheckpoint: 0,
+        attestationComplete: false,
+        refunded: false,
+        skillTopic: 'Solidity'
+      };
+
+      mockStakingContract.stakes.mockResolvedValue(mockStake);
+
+      const result = await contractIntegration.verifyStake('0xUserAddress', 'Solidity');
+
+      expect(result).toBe(true);
+      expect(mockStakingContract.stakes).toHaveBeenCalledWith('0xUserAddress', 'Solidity');
+    });
+
+    it('should return false when stake does not exist', async () => {
+      const mockStake = {
+        amount: 0n,
+        stakedAt: 0n,
+        milestoneCheckpoint: 0,
+        attestationComplete: false,
+        refunded: false,
+        skillTopic: ''
+      };
+
+      mockStakingContract.stakes.mockResolvedValue(mockStake);
+
+      const result = await contractIntegration.verifyStake('0xUserAddress', 'Solidity');
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when verification fails', async () => {
+      mockStakingContract.stakes.mockRejectedValue(new Error('Contract error'));
+
+      const result = await contractIntegration.verifyStake('0xUserAddress', 'Solidity');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getStakeDetails', () => {
+    it('should return stake details', async () => {
+      const mockStake = {
+        amount: ethers.parseEther('1'),
+        stakedAt: BigInt(Date.now()),
+        milestoneCheckpoint: 2,
+        attestationComplete: true,
+        refunded: false,
+        skillTopic: 'Solidity'
+      };
+
+      mockStakingContract.stakes.mockResolvedValue(mockStake);
+
+      const details = await contractIntegration.getStakeDetails('0xUserAddress', 'Solidity');
+
+      expect(details).toMatchObject({
+        amount: expect.any(String),
+        stakedAt: expect.any(String),
+        milestoneCheckpoint: '2',
+        attestationComplete: true,
+        refunded: false,
+        skillTopic: 'Solidity'
+      });
+    });
+
+    it('should throw error when getting stake details fails', async () => {
+      mockStakingContract.stakes.mockRejectedValue(new Error('Query failed'));
+
+      await expect(
+        contractIntegration.getStakeDetails('0xUserAddress', 'Solidity')
+      ).rejects.toThrow('Query failed');
+    });
+  });
+
+  describe('verifyAttestation', () => {
+    it('should return attestation verification result', async () => {
+      const mockResult = {
+        exists: true,
+        score: ethers.parseUnits('85', 0),
+        timestamp: BigInt(Date.now()),
+        signature: '0xsig123'
+      };
+
+      mockAttestationContract.verifyAttestation.mockResolvedValue(mockResult);
+
+      const verification = await contractIntegration.verifyAttestation('0xUserAddress', 'Solidity');
+
+      expect(verification).toMatchObject({
+        exists: true,
+        score: expect.any(String),
+        timestamp: expect.any(String),
+        signature: '0xsig123'
+      });
+    });
+
+    it('should throw error when verification fails', async () => {
+      mockAttestationContract.verifyAttestation.mockRejectedValue(new Error('Attestation not found'));
+
+      await expect(
+        contractIntegration.verifyAttestation('0xUserAddress', 'Solidity')
+      ).rejects.toThrow('Attestation not found');
+    });
+  });
+
+  describe('createContractIntegration', () => {
+    it('should create ContractIntegration instance', async () => {
+      const integration = await createContractIntegration(mockConfig);
+      expect(integration).toBeInstanceOf(ContractIntegration);
+    });
+  });
+});

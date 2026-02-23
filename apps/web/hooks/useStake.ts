@@ -1,11 +1,36 @@
 'use client'
-
 import { useState, useCallback } from 'react'
 import { useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
 import { parseEther, type Address } from 'viem'
 import { SKILL_STAKING_ABI, SKILL_STAKING_ADDRESS } from '@/config/contracts'
 import { isDemoMode, mockStake } from '@/lib/demoMode'
 
+/**
+ * Custom hook for managing skill staking functionality.
+ * Provides methods to stake funds for a skill challenge and claim refunds.
+ * 
+ * @param user - Optional user wallet address
+ * @param skill - Optional skill/topic name to stake for
+ * @returns Object containing staking methods and state
+ * @returns {Function} returns.stake - Function to stake 0.001 ETH for a skill
+ * @returns {Function} returns.claimRefund - Function to claim refund for a skill
+ * @returns {boolean} returns.hasStake - Whether user has an existing stake
+ * @returns {bigint} returns.stakeAmount - Current stake amount
+ * @returns {boolean} returns.isPending - Whether a transaction is pending
+ * @returns {string|null} returns.error - Error message if any
+ * @returns {string|undefined} returns.hash - Transaction hash of current operation
+ * 
+ * @example
+ * ```tsx
+ * const { stake, claimRefund, hasStake, isPending } = useStake(address, 'Solidity')
+ * 
+ * // Stake for a skill
+ * await stake('Solidity Smart Contract Development')
+ * 
+ * // Claim refund
+ * await claimRefund('Solidity Smart Contract Development')
+ * ```
+ */
 export function useStake(user?: Address, skill?: string) {
   const { data: hash, writeContract, isPending: isWriting } = useWriteContract()
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })

@@ -6,6 +6,9 @@ import { isDemoMode, mockJudge } from '@/lib/demoMode'
 
 const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
 
+/**
+ * Response interface for code submission to TEE service
+ */
 export interface SubmitCodeResponse {
   success: boolean
   score?: number
@@ -21,6 +24,28 @@ export interface SubmitCodeResponse {
   error?: string
 }
 
+/**
+ * Custom hook for submitting code and answers to the TEE service.
+ * Provides methods to submit code for grading and submit individual answers.
+ * 
+ * @returns Object containing submission methods and state
+ * @returns {Function} returns.submitCode - Function to submit code for grading
+ * @returns {Function} returns.submitAnswer - Function to submit an answer to a question
+ * @returns {boolean} returns.isSubmitting - Whether a submission is in progress
+ * @returns {string|null} returns.error - Error message if any
+ * 
+ * @example
+ * ```tsx
+ * const { submitCode, submitAnswer, isSubmitting } = useSubmitCode()
+ * 
+ * // Submit code for grading
+ * const result = await submitCode('session-123', 'function hello() {}', 'typescript', 1)
+ * console.log(result.score, result.rubric)
+ * 
+ * // Submit an answer
+ * const answerResult = await submitAnswer('session-123', 'q1', 'My answer')
+ * ```
+ */
 export function useSubmitCode() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

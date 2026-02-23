@@ -10,6 +10,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { PwaProvider } from "@/components/pwa-provider";
 import { ApiKeyWarningBanner } from "@/components/api-key-warning";
+import { DemoModeListener } from "@/components/DemoModeListener";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -74,6 +75,7 @@ export default function RootLayout({
           <OfflineBanner />
           <CommandPalette />
           <ShortcutsHelp />
+          <DemoModeListener />
           <Header />
           <ApiKeyWarningBanner />
           <main className="flex-1 flex flex-col">

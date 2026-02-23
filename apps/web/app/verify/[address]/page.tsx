@@ -8,14 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ExternalLink, CheckCircle, XCircle, Clock, FileSignature } from 'lucide-react'
+import { ExternalLink, CheckCircle, XCircle, Clock, FileSignature, FileCode } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function VerifyPage() {
   const { address } = useParams<{ address: string }>()
   const [skill, setSkill] = useState('')
   const [searchSkill, setSearchSkill] = useState('')
-  
+
   const { attestation, isLoading, exists } = useAttestationData(
     address as `0x${string}`,
     searchSkill
@@ -39,6 +39,11 @@ export default function VerifyPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const getIpfsGatewayUrl = (hash: string) => {
+    const gateway = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/'
+    return `${gateway}${hash}`
   }
 
   return (
@@ -189,7 +194,7 @@ export default function VerifyPage() {
                   </Card>
                 </div>
 
-                <div className="flex justify-center pt-4 border-t">
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4 border-t">
                   <Button
                     variant="outline"
                     onClick={() => window.open(
@@ -200,6 +205,17 @@ export default function VerifyPage() {
                   >
                     <ExternalLink className="w-4 h-4" />
                     View on Etherscan
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(
+                      getIpfsGatewayUrl(attestation.signature.substring(0, 46)),
+                      '_blank'
+                    )}
+                    className="gap-2"
+                  >
+                    <FileCode className="w-4 h-4" />
+                    View Code on IPFS
                   </Button>
                 </div>
               </motion.div>

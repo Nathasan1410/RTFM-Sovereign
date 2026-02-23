@@ -1,3 +1,24 @@
+/**
+ * Architect Agent
+ *
+ * AI-powered curriculum architect responsible for generating learning golden paths.
+ * Converts user learning requests into structured, executable learning paths with
+ * cumulative milestones and micro-steps.
+ *
+ * Key Responsibilities:
+ * - Generate golden paths from user learning requests
+ * - Create cumulative milestone sequences (each builds on previous)
+ * - Assign difficulty levels and depth modes
+ * - Ensure all milestones produce runnable code or visible UI
+ * - Design testable success criteria
+ * - Use deterministic AI generation with seeding
+ *
+ * Dependencies:
+ * - LLMService: AI inference for path generation
+ * - GoldenPathSchema: Schema validation
+ *
+ * @module apps/tee/src/agents/architect/ArchitectAgent
+ */
 
 import { LLMService } from '../../services/llm/LLMService';
 import { GoldenPathSchema, GoldenPath } from '../schemas';

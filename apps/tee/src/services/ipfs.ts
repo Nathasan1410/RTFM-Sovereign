@@ -1,3 +1,23 @@
+/**
+ * IPFS Service
+ *
+ * Decentralized storage service using Pinata IPFS gateway.
+ * Handles uploading and pinning code snapshots and project data to IPFS.
+ *
+ * Key Responsibilities:
+ * - Upload code snapshots to IPFS via Pinata
+ * - Pin files for persistent storage
+ * - Return IPFS hashes (CID) for blockchain reference
+ * - Attach metadata to uploads (project, user, score)
+ * - Handle authentication with API keys or JWT
+ *
+ * Dependencies:
+ * - Pinata API: IPFS pinning service
+ * - Axios: HTTP client for API requests
+ *
+ * @module apps/tee/src/services/ipfs
+ */
+
 import axios from 'axios';
 
 const PINATA_API_URL = 'https://api.pinata.cloud';

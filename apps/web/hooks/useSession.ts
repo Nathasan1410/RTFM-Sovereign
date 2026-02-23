@@ -6,6 +6,9 @@ import { useAccount } from 'wagmi'
 
 const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
 
+/**
+ * Interface representing a milestone within a learning session
+ */
 export interface Milestone {
   id: number
   title: string
@@ -14,6 +17,9 @@ export interface Milestone {
   status: 'pending' | 'active' | 'completed' | 'failed'
 }
 
+/**
+ * Interface representing a complete learning session
+ */
 export interface Session {
   sessionId: string
   userAddress: string
@@ -27,6 +33,34 @@ export interface Session {
   totalScore?: number
 }
 
+/**
+ * Custom hook for managing learning sessions with TEE service.
+ * Provides methods to create, fetch, and update learning sessions.
+ * Automatically fetches session when sessionId is provided.
+ * 
+ * @param sessionId - Optional session ID to fetch on mount
+ * @returns Object containing session data and management methods
+ * @returns {Session|null} returns.session - Current session data
+ * @returns {boolean} returns.isLoading - Whether an operation is in progress
+ * @returns {string|null} returns.error - Error message if any
+ * @returns {Function} returns.createSession - Function to create a new session
+ * @returns {Function} returns.fetchSession - Function to fetch an existing session
+ * @returns {Function} returns.updateMilestoneScore - Function to update milestone scores
+ * 
+ * @example
+ * ```tsx
+ * const { session, createSession, isLoading } = useSession()
+ * 
+ * // Create a new session
+ * const newSession = await createSession('Solidity Smart Contracts')
+ * 
+ * // Update milestone score
+ * await updateMilestoneScore(newSession.sessionId, 1, 85)
+ * ```
+ * 
+ * @remarks
+ * Requires wallet connection to create sessions. Sessions are persisted on TEE service.
+ */
 export function useSession(sessionId?: string) {
   const { address } = useAccount()
   const [session, setSession] = useState<Session | null>(null)

@@ -1,6 +1,36 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 
+/**
+ * Custom hook for managing faucet requests.
+ * Provides functionality to request testnet ETH from faucet service.
+ * Implements cooldown mechanism (1 hour) to prevent spam.
+ * 
+ * @returns Object containing faucet request methods and state
+ * @returns {Function} returns.requestFunds - Function to request faucet funds
+ * @returns {boolean} returns.isRequesting - Whether a request is in progress
+ * @returns {number} returns.cooldownRemaining - Remaining cooldown time in milliseconds
+ * @returns {boolean} returns.isAvailable - Whether faucet is available (no cooldown)
+ * 
+ * @example
+ * ```tsx
+ * const { requestFunds, isRequesting, isAvailable } = useFaucetRequest()
+ * 
+ * <button onClick={requestFunds} disabled={!isAvailable || isRequesting}>
+ *   {isRequesting ? 'Requesting...' : 'Get Testnet ETH'}
+ * </button>
+ * 
+ * {cooldownRemaining > 0 && (
+ *   <p>Cooldown: {Math.floor(cooldownRemaining / 60000)} minutes</p>
+ * )}
+ * ```
+ * 
+ * @remarks
+ * - Cooldown period: 1 hour (3,600,000 ms)
+ * - Demo mode simulates faucet request without real transaction
+ * - Production mode opens external faucet URL
+ * - Last request time persisted in localStorage
+ */
 export function useFaucetRequest() {
   const { address } = useAccount()
   const [isRequesting, setIsRequesting] = useState(false)

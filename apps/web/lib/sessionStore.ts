@@ -1,6 +1,29 @@
+/**
+ * Session Store
+ *
+ * Zustand-based state management for learning sessions.
+ * Provides persistent storage for session data, milestones, and user progress.
+ *
+ * Key Features:
+ * - LocalStorage persistence via zustand/middleware
+ * - Session CRUD operations (create, read, update, delete)
+ * - Milestone tracking and updates
+ * - Active session management
+ * - Loading and error state management
+ *
+ * Dependencies:
+ * - zustand: State management library
+ * - zustand/middleware: Persistence utilities
+ *
+ * @module apps/web/lib/sessionStore
+ */
+
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
+/**
+ * Interface for a question within a milestone
+ */
 export interface Question {
   id: string
   prompt: string
@@ -8,6 +31,9 @@ export interface Question {
   language?: string
 }
 
+/**
+ * Interface for a milestone data
+ */
 export interface MilestoneData {
   id: number
   title: string
@@ -19,6 +45,9 @@ export interface MilestoneData {
   questions?: Question[]
 }
 
+/**
+ * Interface for complete session data
+ */
 export interface SessionData {
   sessionId: string
   userAddress: string
@@ -35,6 +64,9 @@ export interface SessionData {
   attestationHash?: string
 }
 
+/**
+ * Interface for session store state and actions
+ */
 interface SessionState {
   sessions: Record<string, SessionData>
   activeSessionId: string | null
@@ -52,6 +84,25 @@ interface SessionState {
   setLoading: (isLoading: boolean) => void
 }
 
+/**
+ * Zustand store hook for session management.
+ * Automatically persists to localStorage under key 'rtfm-sovereign-sessions'.
+ *
+ * @example
+ * ```typescript
+ * const { sessions, activeSessionId, addSession } = useSessionStore();
+ *
+ * // Add a new session
+ * addSession({
+ *   sessionId: 'session-123',
+ *   userAddress: '0xabc...',
+ *   topic: 'React Hooks',
+ *   status: 'created',
+ *   createdAt: new Date().toISOString(),
+ *   milestones: []
+ * });
+ * ```
+ */
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => ({
@@ -135,6 +186,24 @@ export const useSessionStore = create<SessionState>()(
   )
 )
 
+/**
+ * Helper hook to retrieve the currently active session.
+ * Returns null if no session is active.
+ *
+ * @returns The active SessionData object or null if no active session
+ *
+ * @example
+ * ```typescript
+ * const activeSession = useActiveSession();
+ *
+ * if (!activeSession) {
+ *   return <div>No active session</div>;
+ * }
+ *
+ * console.log('Current session:', activeSession.sessionId);
+ * console.log('Progress:', activeSession.milestones);
+ * ```
+ */
 export const useActiveSession = () => {
   const { sessions, activeSessionId } = useSessionStore()
   return activeSessionId ? sessions[activeSessionId] : null

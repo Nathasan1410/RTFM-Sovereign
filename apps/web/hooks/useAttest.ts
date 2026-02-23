@@ -5,6 +5,9 @@ import { REGISTRY_ABI } from '../config/abi'
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`
 const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
 
+/**
+ * Interface representing an attestation result from TEE service
+ */
 export interface AttestationResult {
   signature: `0x${string}`
   score: number
@@ -13,6 +16,42 @@ export interface AttestationResult {
   attestationHash: string
 }
 
+/**
+ * Custom hook for managing attestation submission and on-chain recording.
+ * Handles two-phase attestation process: TEE verification and blockchain storage.
+ * 
+ * @returns Object containing attestation methods and state
+ * @returns {Function} returns.submitToTEE - Function to submit answers to TEE for attestation
+ * @returns {Function} returns.recordOnChain - Function to record attestation on blockchain
+ * @returns {boolean} returns.isSubmittingToTEE - Whether TEE submission is in progress
+ * @returns {boolean} returns.isRecording - Whether on-chain recording is in progress
+ * @returns {boolean} returns.isConfirming - Whether transaction is being confirmed
+ * @returns {boolean} returns.isRecorded - Whether attestation was successfully recorded on-chain
+ * @returns {AttestationResult|null} returns.attestationResult - TEE attestation result
+ * @returns {Error|null} returns.error - Error from TEE or blockchain
+ * @returns {`0x${string}`|undefined} returns.hash - Transaction hash of on-chain recording
+ * 
+ * @example
+ * ```tsx
+ * const { submitToTEE, recordOnChain, isRecorded } = useAttest()
+ * 
+ * // Submit answers to TEE
+ * const attestation = await submitToTEE('Solidity', 'challenge-123', ['answer1', 'answer2'])
+ * 
+ * // Record on blockchain
+ * await recordOnChain('Solidity')
+ * 
+ * if (isRecorded) {
+ *   console.log('Attestation recorded successfully!')
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Must call submitToTEE before recordOnChain
+ * - TEE returns signed attestation with EIP-712 signature
+ * - Blockchain recording stores attestation permanently
+ * - Requires wallet connection for on-chain recording
+ */
 export function useAttest() {
   const { address } = useAccount()
   const [isSubmittingToTEE, setIsSubmittingToTEE] = useState(false)

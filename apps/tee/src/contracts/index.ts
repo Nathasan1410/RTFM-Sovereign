@@ -1,3 +1,26 @@
+/**
+ * Contract Integration Module
+ *
+ * Smart contract interaction layer for TEE service.
+ * Provides typed interfaces for interacting with SkillAttestation and
+ * SkillStaking contracts on Ethereum Sepolia testnet.
+ *
+ * Key Responsibilities:
+ * - Initialize Ethereum provider and wallet
+ * - Create contract instances with typed ABIs
+ * - Record milestones on staking contract
+ * - Record attestations on attestation contract
+ * - Generate EIP-712 typed data signatures
+ * - Handle contract transaction submission and confirmation
+ *
+ * Dependencies:
+ * - ethers.js: Ethereum interaction library
+ * - SkillAttestation ABI: Attestation contract interface
+ * - SkillStaking ABI: Staking contract interface
+ *
+ * @module apps/tee/src/contracts
+ */
+
 import { ethers } from 'ethers';
 import SkillAttestationABI from './abis/SkillAttestation.json';
 import SkillStakingABI from './abis/SkillStaking.json';

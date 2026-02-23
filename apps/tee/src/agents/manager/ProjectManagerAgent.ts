@@ -1,3 +1,27 @@
+/**
+ * Project Manager Agent
+ *
+ * Central orchestrator for learning sessions and project state management.
+ * Manages the complete lifecycle of user learning sessions including session creation,
+ * milestone tracking, code accumulation, and attestation recording.
+ *
+ * Key Responsibilities:
+ * - Session lifecycle management (create, update, complete, fail)
+ * - Golden path execution and milestone tracking
+ * - Code accumulation across micro-steps
+ * - Staking state management and checkpoint recording
+ * - Integration with judging engine for code grading
+ * - Blockchain integration for attestation recording
+ * - IPFS snapshot uploads for persistent storage
+ *
+ * Dependencies:
+ * - SwarmAgent: AI-powered task execution
+ * - JudgingEngine: Code analysis and grading
+ * - ContractIntegration: Smart contract interaction
+ * - IPFSService: Decentralized storage
+ *
+ * @module apps/tee/src/agents/manager/ProjectManagerAgent
+ */
 
 import { v4 as uuidv4 } from 'uuid';
 import { SessionState, SessionStateSchema, GoldenPath, DelegationPayload, DelegationPayloadSchema } from '../schemas';

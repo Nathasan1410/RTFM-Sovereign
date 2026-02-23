@@ -1,7 +1,30 @@
+/**
+ * TEE Service Client
+ *
+ * Axios-based HTTP client for communicating with TEE (Trusted Execution Environment) service.
+ * Provides typed API methods for all TEE endpoints with error handling and logging.
+ *
+ * Key Features:
+ * - Pre-configured axios instance with base URL and headers
+ * - Request/response interceptors for error handling
+ * - Comprehensive error logging for debugging
+ * - Type-safe API methods organized by resource
+ * - 30-second timeout for all requests
+ *
+ * Dependencies:
+ * - axios: HTTP client library
+ *
+ * @module apps/web/lib/teeClient
+ */
+
 import axios from 'axios'
 
 const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
 
+/**
+ * Axios instance pre-configured for TEE service communication.
+ * Includes base URL, JSON headers, and 30-second timeout.
+ */
 export const teeClient = axios.create({
   baseURL: TEE_URL,
   headers: {
@@ -10,6 +33,10 @@ export const teeClient = axios.create({
   timeout: 30000
 })
 
+/**
+ * Request interceptor - logs all outgoing requests and passes them through.
+ * Can be extended to add authentication tokens or request IDs.
+ */
 teeClient.interceptors.request.use(
   (config) => {
     return config
@@ -19,6 +46,10 @@ teeClient.interceptors.request.use(
   }
 )
 
+/**
+ * Response interceptor - logs errors and handles different error scenarios.
+ * Categorizes errors into: response errors, network errors, and request errors.
+ */
 teeClient.interceptors.response.use(
   (response) => {
     return response
@@ -39,6 +70,22 @@ teeClient.interceptors.response.use(
   }
 )
 
+/**
+ * Type-safe API client organized by resource.
+ * Provides methods for session, challenge, contract, and health endpoints.
+ *
+ * @example
+ * ```typescript
+ * // Create a session
+ * const session = await teeApi.session.create('0x123...', 'Solidity');
+ *
+ * // Generate a challenge
+ * const challenge = await teeApi.challenge.generate('0x123...', 'React');
+ *
+ * // Check TEE health
+ * const health = await teeApi.health.check();
+ * ```
+ */
 export const teeApi = {
   session: {
     create: (userAddress: string, goldenPath: string) =>

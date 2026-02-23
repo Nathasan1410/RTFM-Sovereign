@@ -1,3 +1,31 @@
+/**
+ * TEE Service Server
+ *
+ * Express-based HTTP server for Trusted Execution Environment service.
+ * Acts as the entry point for all TEE operations including session management,
+ * challenge generation, code grading, and attestation signing.
+ *
+ * Key Responsibilities:
+ * - REST API endpoints for session management (/session/*)
+ * - Challenge generation via AI agents (/challenge/generate)
+ * - Answer grading and attestation signing (/attest)
+ * - Health check endpoint (/health)
+ * - CORS and middleware configuration
+ * - Service initialization and dependency injection
+ *
+ * Dependencies:
+ * - Express.js: Web framework
+ * - TEEIdentity: Cryptographic identity management
+ * - ArchitectAgent: Golden path generation
+ * - SpecialistAgent: Code analysis and feedback
+ * - LLMService: AI inference (Cerebras, Groq, Brave, Hyperbolic)
+ * - JudgingEngine: Multi-layer code analysis and grading
+ * - ContractIntegration: Smart contract interaction
+ * - IPFSService: Decentralized storage
+ *
+ * @module apps/tee/src/server
+ */
+
 import 'dotenv/config';
 import express from 'express';
 import { TEEIdentity } from './crypto/signer';

@@ -1,0 +1,99 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Share2, Copy, Twitter, Linkedin, Download } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+interface ShareActionsProps {
+  url: string;
+  score: number;
+  skill: string;
+  address: string;
+}
+
+export function ShareActions({ url, score, skill, address }: ShareActionsProps) {
+  const copyLink = () => {
+    navigator.clipboard.writeText(url);
+    toast.success('Link copied to clipboard', { duration: 2000 });
+  };
+
+  const shareOnX = () => {
+    const text = `🎯 Just earned a ${score}/100 score in ${skill} on RTFM-Sovereign!\n\nVerify my skill credential here: ${url}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const shareOnLinkedIn = () => {
+    const text = `Check out my verified skill credential for ${skill} (Score: ${score}/100)`;
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+    window.open(linkedInUrl, '_blank');
+  };
+
+  const downloadCertificate = () => {
+    toast.info('Certificate download coming soon!', {
+      description: 'We\'re working on PDF generation. Stay tuned!',
+      duration: 3000
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+    >
+      <Card className="p-6">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Share2 className="w-5 h-5 text-primary" />
+          Share Credential
+        </h3>
+
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={copyLink}
+              className="flex-1 gap-2"
+            >
+              <Copy className="w-4 h-4" />
+              Copy Link
+            </Button>
+            <Button
+              variant="outline"
+              onClick={downloadCertificate}
+              className="flex-1 gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </Button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="default"
+              onClick={shareOnX}
+              className="flex-1 gap-2"
+            >
+              <Twitter className="w-4 h-4" />
+              Share on X
+            </Button>
+            <Button
+              variant="outline"
+              onClick={shareOnLinkedIn}
+              className="flex-1 gap-2"
+            >
+              <Linkedin className="w-4 h-4" />
+              Share on LinkedIn
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
+          Share your verified skill to show employers your coding expertise!
+        </div>
+      </Card>
+    </motion.div>
+  );
+}

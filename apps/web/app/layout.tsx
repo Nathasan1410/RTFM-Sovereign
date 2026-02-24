@@ -11,6 +11,8 @@ import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { PwaProvider } from "@/components/pwa-provider";
 import { ApiKeyWarningBanner } from "@/components/api-key-warning";
 import { DemoModeListener } from "@/components/DemoModeListener";
+import { DemoModeBadge } from "@/components/layout/DemoModeBadge";
+import { isDemoMode } from "@/lib/demoMode";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -71,13 +73,14 @@ export default function RootLayout({
       <body className="antialiased min-h-screen bg-background font-mono text-foreground flex flex-col">
         <Providers>
           <PwaProvider />
-          <StoreInitializer />
-          <OfflineBanner />
-          <CommandPalette />
-          <ShortcutsHelp />
-          <DemoModeListener />
-          <Header />
-          <ApiKeyWarningBanner />
+            <StoreInitializer />
+            <OfflineBanner />
+            <CommandPalette />
+            <ShortcutsHelp />
+            <DemoModeListener />
+            {isDemoMode() && <DemoModeBadge />}
+            <Header />
+            <ApiKeyWarningBanner />
           <main className="flex-1 flex flex-col">
             {children}
           </main>

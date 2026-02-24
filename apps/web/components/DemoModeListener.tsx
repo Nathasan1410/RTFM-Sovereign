@@ -17,6 +17,7 @@ export function DemoModeListener() {
         if ((window as any).__shiftDCount >= 3) {
           if (!isDemoMode()) {
             enableDemoMode();
+            console.log('[RTFM] Demo Mode Active: manual_toggle');
             toast.success('🎮 Demo Mode Activated!', {
               description: 'All blockchain interactions are now simulated.',
               duration: 5000,

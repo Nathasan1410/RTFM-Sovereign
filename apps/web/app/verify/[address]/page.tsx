@@ -134,6 +134,9 @@ export default function VerifyPage() {
           score={attestation.score}
           skill={searchSkill}
           address={address as string}
+          timestamp={attestation.timestamp}
+          transactionHash={attestation.transactionHash}
+          ipfsHash={attestation.ipfsHash}
         />
       </div>
     </div>

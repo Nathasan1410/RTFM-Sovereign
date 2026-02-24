@@ -2,16 +2,19 @@
 
 import { useReadContract } from 'wagmi';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { SKILL_ATTESTATION_ADDRESS, SKILL_ATTESTATION_ABI } from '@/config/contracts';
 import { AttestationData } from '@/types/attestation';
-import { isDemoMode, mockAttestation } from '@/lib/demoMode';
+import { isDemoMode, mockAttestation, enableDemoMode } from '@/lib/demoMode';
+import { useTransactionHash } from './useTransactionHash';
 
 export function useVerifyAttestation(address: string, skill: string) {
   const [attestation, setAttestation] = useState<AttestationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { txHash, loading: txLoading } = useTransactionHash(address, skill);
 
-  const { data: rawData, isLoading: contractLoading } = useReadContract({
+  const { data: rawData, isLoading: contractLoading, error: contractError } = useReadContract({
     address: SKILL_ATTESTATION_ADDRESS,
     abi: SKILL_ATTESTATION_ABI,
     functionName: 'verifyAttestation',
@@ -22,6 +25,16 @@ export function useVerifyAttestation(address: string, skill: string) {
   });
 
   useEffect(() => {
+    if (contractError && !isDemoMode()) {
+      console.log('[RTFM] Contract read error, enabling demo mode fallback:', contractError);
+      enableDemoMode();
+      toast.error('Blockchain unavailable - Switched to Demo Preview', {
+        description: 'RPC connection failed. Showing simulated data.',
+        duration: 8000,
+      });
+      return;
+    }
+
     if (isDemoMode()) {
       const mockData = mockAttestation(address, skill);
       setAttestation({
@@ -30,7 +43,7 @@ export function useVerifyAttestation(address: string, skill: string) {
         timestamp: mockData.timestamp,
         signature: mockData.transactionHash,
         ipfsHash: mockData.ipfsHash,
-        transactionHash: mockData.transactionHash,
+        transactionHash: txHash || mockData.transactionHash,
         milestoneScores: [85, 88, 90, 87, 92]
       });
       setLoading(false);
@@ -65,7 +78,7 @@ export function useVerifyAttestation(address: string, skill: string) {
           timestamp: Number(timestamp),
           signature,
           ipfsHash,
-          transactionHash: '',
+          transactionHash: txHash || '',
           milestoneScores: [85, 88, 90, 87, 92]
         });
       } else {
@@ -97,7 +110,7 @@ export function useVerifyAttestation(address: string, skill: string) {
 
   return {
     attestation,
-    loading: loading || contractLoading,
+    loading: loading || contractLoading || txLoading,
     error
   };
 }

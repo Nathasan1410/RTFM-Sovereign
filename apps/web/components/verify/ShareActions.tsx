@@ -1,19 +1,26 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Share2, Copy, Twitter, Linkedin, Download } from 'lucide-react';
+import { Share2, Copy, Twitter, Linkedin, Download, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { generateCertificate } from '@/lib/pdfGenerator';
 
 interface ShareActionsProps {
   url: string;
   score: number;
   skill: string;
   address: string;
+  timestamp: number;
+  transactionHash: string;
+  ipfsHash: string;
 }
 
-export function ShareActions({ url, score, skill, address }: ShareActionsProps) {
+export function ShareActions({ url, score, skill, address, timestamp, transactionHash, ipfsHash }: ShareActionsProps) {
+  const [generating, setGenerating] = useState(false);
+
   const copyLink = () => {
     navigator.clipboard.writeText(url);
     toast.success('Link copied to clipboard', { duration: 2000 });
@@ -31,11 +38,43 @@ export function ShareActions({ url, score, skill, address }: ShareActionsProps) 
     window.open(linkedInUrl, '_blank');
   };
 
-  const downloadCertificate = () => {
-    toast.info('Certificate download coming soon!', {
-      description: 'We\'re working on PDF generation. Stay tuned!',
-      duration: 3000
-    });
+  const downloadCertificate = async () => {
+    setGenerating(true);
+    try {
+      const blob = await generateCertificate({
+        skillName: skill,
+        holderAddress: address,
+        score,
+        timestamp,
+        transactionHash,
+        ipfsHash,
+        verifyUrl: url
+      });
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filename = `RTFM-${skill}-${address.substring(0, 8)}.pdf`;
+      
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+
+      toast.success('Certificate downloaded successfully!', {
+        description: `File: ${filename}`,
+        duration: 5000
+      });
+    } catch (error) {
+      console.error('[PDF] Error generating certificate:', error);
+      toast.error('Failed to generate certificate', {
+        description: 'Please try again or contact support.',
+        duration: 5000
+      });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -63,10 +102,15 @@ export function ShareActions({ url, score, skill, address }: ShareActionsProps) 
             <Button
               variant="outline"
               onClick={downloadCertificate}
+              disabled={generating}
               className="flex-1 gap-2"
             >
-              <Download className="w-4 h-4" />
-              Download PDF
+              {generating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {generating ? 'Generating...' : 'Download PDF'}
             </Button>
           </div>
 

@@ -19,7 +19,7 @@
 
 import axios from 'axios'
 
-const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
+const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:3001'
 
 /**
  * Axios instance pre-configured for TEE service communication.
@@ -115,6 +115,11 @@ export const teeApi = {
     
     claimRefund: (sessionId: string) =>
       teeClient.post('/contract/claim-refund', { sessionId })
+  },
+
+  verification: {
+    verifyCode: (userAddress: string, sessionId: string, milestoneId: number, codeFiles: Array<{ file_path: string; code: string }>, rubric?: any, seed?: number) =>
+      teeClient.post('/verify-code', { userAddress, sessionId, milestoneId, codeFiles, rubric, seed })
   },
 
   test: {

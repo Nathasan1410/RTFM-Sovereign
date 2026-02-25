@@ -1,77 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { Settings, HelpCircle, Menu, Flame, Book } from "lucide-react"
-import { Button } from "./ui/button"
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export function Header() {
-  const [streak, setStreak] = useState(0);
-
-  useEffect(() => {
-    // Initial load
-    const count = parseInt(localStorage.getItem('rtfm_streak_count') || '0', 10);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStreak(count);
-
-    // Listen for storage events (from other tabs or store updates)
-    const handleStorage = () => {
-      const newCount = parseInt(localStorage.getItem('rtfm_streak_count') || '0', 10);
-      setStreak(newCount);
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md h-14">
-      <div className="container flex h-14 max-w-7xl items-center justify-between px-6">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
+      <div className="flex h-14 w-full items-center justify-between px-6">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <span className="text-lg font-bold font-mono text-green-500">RTFM</span>
-            <span className="text-xs text-muted-foreground font-mono">v1.0</span>
-          </Link>
+          <span className="text-lg font-bold font-mono text-green-500">RTFM</span>
+          <span className="text-xs text-muted-foreground font-mono">v1.0</span>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {streak > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-900/50 border border-zinc-800 rounded-sm mr-2 animate-in fade-in duration-500">
-              <Flame className="w-4 h-4 text-orange-500 fill-orange-500/20" />
-              <span className="text-xs font-mono font-bold text-zinc-300">{streak} day{streak > 1 ? 's' : ''}</span>
-            </div>
-          )}
 
-          <Link href="/docs">
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-              <Book className="h-5 w-5" />
-              <span className="sr-only">Documentation</span>
-            </Button>
-          </Link>
-          <Link href="/settings">
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-              <Settings className="h-5 w-5" />
-              <span className="sr-only">Settings</span>
-            </Button>
-          </Link>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-9 w-9 text-muted-foreground hover:text-foreground"
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true }))}
-          >
-            <HelpCircle className="h-5 w-5" />
-            <span className="sr-only">Help</span>
-          </Button>
-          
-          <div className="md:hidden">
-             <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Menu</span>
-            </Button>
-          </div>
-        </div>
+        <ConnectButton.Custom>
+          {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
+            const ready = mounted && authenticationStatus !== 'loading';
+            const connected = ready && account && chain;
+
+            return (
+              <div className="flex items-center gap-2">
+                {(() => {
+                  if (!connected) {
+                    return (
+                      <button
+                        onClick={openConnectModal}
+                        type="button"
+                        className="h-8 rounded-sm bg-zinc-100 text-zinc-900 hover:bg-zinc-300 font-mono text-xs font-bold uppercase tracking-wider px-3 transition-colors"
+                      >
+                        Connect Wallet
+                      </button>
+                    );
+                  }
+
+                  if (chain.unsupported) {
+                    return (
+                      <button
+                        onClick={openChainModal}
+                        type="button"
+                        className="h-8 rounded-sm bg-red-500/10 text-red-500 border border-red-500/20 font-mono text-xs font-bold uppercase tracking-wider px-3 transition-colors"
+                      >
+                        Wrong network
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={openChainModal}
+                        type="button"
+                        className="hidden sm:flex h-8 items-center gap-2 rounded-sm border border-zinc-800 bg-zinc-900/50 px-2 font-mono text-xs hover:bg-zinc-900 hover:text-zinc-100 transition-colors"
+                      >
+                        {chain.hasIcon && (
+                          <div className="h-4 w-4 rounded-full bg-zinc-700" />
+                        )}
+                        {chain.name}
+                      </button>
+                      <button
+                        onClick={openAccountModal}
+                        type="button"
+                        className="h-8 rounded-sm border border-zinc-800 bg-zinc-900/50 px-3 font-mono text-xs hover:bg-zinc-900 hover:text-zinc-100 transition-colors"
+                      >
+                        {account.displayName}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
       </div>
     </header>
-  )
+  );
 }

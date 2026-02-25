@@ -16,11 +16,17 @@ export async function POST(req: Request) {
     }
 
     const { userCode, requirements, topic } = parseResult.data;
-    
-    const groqKey = req.headers.get('x-api-key-groq') || undefined;
-    const cerebrasKey = req.headers.get('x-api-key-cerebras') || undefined;
 
-    const { client, defaultModel } = getAIClient({ groq: groqKey, cerebras: cerebrasKey });
+    // Use server-side environment variables for API keys (NEVER from frontend)
+    const groqKey = process.env.GROQ_API_KEY || undefined;
+    const cerebrasKey = process.env.CEREBRAS_API_KEY || undefined;
+    const eigenPrivateKey = process.env.EIGENAI_PRIVATE_KEY || undefined;
+
+    const { client, defaultModel } = getAIClient({
+      groq: groqKey,
+      cerebras: cerebrasKey,
+      eigenPrivateKey: eigenPrivateKey
+    });
 
     const checks: CheckResult[] = [];
 
@@ -187,17 +193,12 @@ export async function POST(req: Request) {
     const lintFailed = checks.some(c => c.category === 'lint' && c.status === 'FAIL');
     const typeFailed = checks.some(c => c.category === 'type' && c.status === 'FAIL');
 
+    // Run AI verification regardless of lint/type issues (they're helpful feedback)
+    // Only skip AI if code is completely unparseable
     let aiCheck: CheckResult;
 
-    if (lintFailed || typeFailed) {
-      aiCheck = {
-        category: 'ai',
-        status: 'WARNING',
-        message: 'AI verification skipped due to linting/type errors. Fix those first.',
-      };
-    } else {
-      try {
-        const systemPrompt = `
+    try {
+      const systemPrompt = `
 You are a Strict Code Judge for a programming tutorial.
 Your goal is to verify if USER CODE meets specific REQUIREMENTS.
 
@@ -222,7 +223,16 @@ JSON RESPONSE FORMAT:
 }
 `;
 
-        const completion = await (client as any).chat.completions.create({
+        // EigenAI uses client.completions.create, Groq/Cerebras use client.chat.completions.create
+        const createCompletion = (client as any).completions 
+          ? (client as any).completions.create.bind(client)
+          : (client as any).chat?.completions?.create?.bind((client as any).chat);
+
+        if (!createCompletion) {
+          throw new Error('Invalid client configuration');
+        }
+
+        const completion = await createCompletion({
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `USER CODE:\n\n${userCode}` }
@@ -260,7 +270,6 @@ JSON RESPONSE FORMAT:
           details: error instanceof Error ? error.message : String(error),
         };
       }
-    }
 
     checks.push(aiCheck);
 

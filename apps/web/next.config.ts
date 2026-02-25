@@ -1,9 +1,25 @@
 import type { NextConfig } from "next";
+import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
   images: {
-    domains: [], 
+    domains: [],
+  },
+  turbopack: {
+    root: path.resolve(__dirname, '../..'),
+  },
+  // Configure webpack for Monaco Editor
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Monaco Editor needs these for web workers
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+    return config;
   },
   async headers() {
     return [
@@ -14,13 +30,15 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval';
-              style-src 'self' 'unsafe-inline';
+              script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net;
+              style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
               img-src 'self' data: https:;
-              connect-src 'self' https://api.cerebras.ai;
-              font-src 'self';
+              connect-src 'self' https://api.cerebras.ai https://1rpc.io/sepolia https://1rpc.io https://*.1rpc.io ws://localhost:* http://localhost:*;
+              font-src 'self' https://cdn.jsdelivr.net;
               object-src 'none';
               base-uri 'self';
+              frame-src 'self' blob:;
+              worker-src 'self' blob: data:;
               form-action 'self';
               frame-ancestors 'none';
             `.replace(/\s{2,}/g, ' ').trim(),

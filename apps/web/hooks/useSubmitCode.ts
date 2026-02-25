@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import axios from 'axios'
 import { isDemoMode, mockJudge } from '@/lib/demoMode'
 
-const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
+const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:3001'
 
 /**
  * Response interface for code submission to TEE service

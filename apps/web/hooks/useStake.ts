@@ -70,7 +70,7 @@ export function useStake(user?: Address, skill?: string) {
     }
   }, [writeContract])
 
-  const claimRefund = useCallback(async (skillToClaim: string) => {
+  const claimRefund = useCallback(async (skillToClaim: string, finalScore: number) => {
     if (!user) {
       setError('User address is required')
       throw new Error('User address is required')
@@ -83,7 +83,7 @@ export function useStake(user?: Address, skill?: string) {
         address: SKILL_STAKING_ADDRESS,
         abi: SKILL_STAKING_ABI,
         functionName: 'claimRefund',
-        args: [user, skillToClaim]
+        args: [user, skillToClaim, BigInt(finalScore)]
       })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to claim refund'

@@ -13,7 +13,7 @@ export function getIpfsGateway(): string {
   return process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
 }
 
-const TIMEOUT_MS = parseInt(process.env.NEXT_PUBLIC_IPFS_TIMEOUT || '8000');
+const TIMEOUT_MS = parseInt(process.env.NEXT_PUBLIC_IPFS_TIMEOUT || '15000');
 
 export async function fetchIpfsContent<T = any>(hash: string): Promise<T | null> {
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

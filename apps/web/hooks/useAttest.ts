@@ -3,7 +3,7 @@ import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagm
 import { REGISTRY_ABI } from '../config/abi'
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`
-const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
+const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:3001'
 
 /**
  * Interface representing an attestation result from TEE service

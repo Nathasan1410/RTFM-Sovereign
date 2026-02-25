@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  tee-service:
+    build:
+      context: ./apps/tee
+      dockerfile: Dockerfile.deployment
+    container_name: rtfm-tee
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - RPC_URL=${RPC_URL:-https://1rpc.io/sepolia}
+      - CONTRACT_ATTESTATION=${CONTRACT_ATTESTATION}
+      - CONTRACT_STAKING=${CONTRACT_STAKING}
+      - TEE_PRIVATE_KEY=${TEE_PRIVATE_KEY}
+      - PINATA_API_KEY=${PINATA_API_KEY}
+      - PINATA_SECRET_API_KEY=${PINATA_SECRET_API_KEY}
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+      - HYPERBOLIC_API_KEY=${HYPERBOLIC_API_KEY}
+      - EIGENAI_API_KEY=${EIGENAI_API_KEY}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - rtfm-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: rtfm-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - rtfm-network
+    volumes:
+      - redis-data:/data
+
+networks:
+  rtfm-network:
+    driver: bridge
+
+volumes:
+  redis-data:

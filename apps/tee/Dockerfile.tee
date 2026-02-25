@@ -1,3 +1,11 @@
+# =============================================================================
+# Multi-Stage Dockerfile for EigenCompute TEE Service
+# Supports both SGX enclave mode and development mode
+# =============================================================================
+
+# =============================================================================
+# Stage 1: Builder - Compile TypeScript
+# =============================================================================
 FROM node:18-bullseye-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -22,16 +30,26 @@ COPY . .
 
 RUN pnpm build
 
-FROM gramineproject/gramine:1.6-sgx AS base
+# =============================================================================
+# Stage 2: Production - SGX Enclave Mode
+# =============================================================================
+FROM gramineproject/gramine:1.6-sgx AS production
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMINE_SGX_SIZE=2048M
 ENV GRAMINE_SGX_THREAD_COUNT=8
 
+# Install SGX DCAP dependencies for quote generation
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    libsgx-urts \
+    libsgx-uae-service \
+    libsgx-dcap-ql \
+    libsgx-dcap-ql-dev \
+    libsgx-epid \
+    libsgx-quote-ex \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -41,15 +59,24 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY gramine.manifest.template ./
 
+# Generate Gramine manifest and SGX private key
 RUN gramine-manifest \
     -Dlog_level=error \
     -Darch__dlopen_version=glibc_2.17 \
     gramine.manifest.template gramine.manifest && \
     gramine-sgx-gen-private-key
 
+# Environment variables for SGX attestation
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV ENCLAVE_ENABLED=true
+ENV SGX_ENABLED=true
+ENV PCCS_URL=https://api.trustedservices.intel.com/sgx/certification/v3/
+ENV USE_MOCK_TEE=false
+ENV SGX_SEALED_KEY_PATH=/sealed/tee_key.sealed
+
+# Create directory for sealed keys
+RUN mkdir -p /sealed /tmp
 
 # EigenCompute requires binding to 0.0.0.0
 EXPOSE 8080
@@ -57,18 +84,26 @@ EXPOSE 8080
 ENTRYPOINT ["gramine-sgx"]
 CMD ["/usr/local/bin/node", "dist/server.js"]
 
+# =============================================================================
+# Stage 3: Production Debug - SGX with verbose logging
+# =============================================================================
 FROM gramineproject/gramine:1.6-sgx AS production-debug
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GRAMINE_SGX_SIZE=4096M
 ENV GRAMINE_SGX_THREAD_COUNT=8
 
+# Install SGX DCAP dependencies and debugging tools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     strace \
     gdb \
+    libsgx-urts \
+    libsgx-uae-service \
+    libsgx-dcap-ql \
+    libsgx-dcap-ql-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -78,18 +113,84 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY gramine.manifest.template ./
 
+# Generate Gramine manifest with debug logging
 RUN gramine-manifest \
     -Dlog_level=debug \
     -Darch__dlopen_version=glibc_2.17 \
     gramine.manifest.template gramine.manifest && \
     gramine-sgx-gen-private-key
 
+# Environment variables for SGX attestation with debug
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV ENCLAVE_ENABLED=true
 ENV DEBUG=1
+ENV SGX_ENABLED=true
+ENV PCCS_URL=https://api.trustedservices.intel.com/sgx/certification/v3/
+ENV USE_MOCK_TEE=false
+ENV SGX_SEALED_KEY_PATH=/sealed/tee_key.sealed
+
+# Create directory for sealed keys
+RUN mkdir -p /sealed /tmp
 
 EXPOSE 3000
 
 ENTRYPOINT ["gramine-sgx", "--log-level", "debug"]
 CMD ["/usr/local/bin/node", "dist/server.js"]
+
+# =============================================================================
+# Stage 4: Development - Mock mode (no SGX hardware required)
+# =============================================================================
+FROM node:18-bullseye-slim AS development
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /app
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json pnpm-lock.yaml ./
+
+RUN corepack enable && \
+    corepack prepare pnpm@8.15.0 --activate && \
+    pnpm install
+
+COPY . .
+
+RUN pnpm build
+
+# Environment variables for development mode (mock attestation)
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV SGX_ENABLED=false
+ENV USE_MOCK_TEE=true
+ENV SGX_SEALED_KEY_PATH=/tmp/tee_key.sealed
+
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]
+
+# =============================================================================
+# Build Instructions
+# =============================================================================
+#
+# For production SGX mode:
+#   docker build --target production -t eigencompute-tee:sgx -f Dockerfile.tee .
+#
+# For production with debug logging:
+#   docker build --target production-debug -t eigencompute-tee:debug -f Dockerfile.tee .
+#
+# For development (no SGX required):
+#   docker build --target development -t eigencompute-tee:dev -f Dockerfile.tee .
+#
+# Run examples:
+#   docker run -p 8080:8080 --env-file .env eigencompute-tee:sgx
+#   docker run -p 3000:3000 --env-file .env eigencompute-tee:dev
+#
+# =============================================================================

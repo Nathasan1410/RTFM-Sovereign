@@ -1,5 +1,5 @@
 import pMap from 'p-map';
-import { ArchitectAgent, Challenge } from '../agents/ArchitectAgent';
+import { ArchitectAgent, Challenge } from '../agents/architect/ArchitectAgent';
 import { SpecialistAgent, Answer, EvaluationResult } from '../agents/SpecialistAgent';
 import { agentLogger } from '../utils/logger';
 

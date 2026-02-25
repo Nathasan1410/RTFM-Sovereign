@@ -8,19 +8,19 @@ export const ModuleContentSchema = z.object({
   title: z.string().min(5).max(100),
   context: z.string()
     .min(20)
-    .max(300),
+    .max(1000),
     // .regex(/(because|important|essential)/i, "Context must explain WHY (use 'because', 'important', or 'essential')"),
   docUrl: z.string().url().startsWith("https://", "Must be a valid HTTPS URL").optional(),
   docs: z.array(z.object({
-    title: z.string().min(3).max(50),
+    title: z.string().min(3).max(100),
     url: z.string().url()
   })).optional().default([]),
   challenge: z.string()
     .min(30)
-    .max(500)
-    .refine((val) => !/```|function\s+\w+\(/.test(val), "Challenge cannot contain code snippets (no code blocks or function declarations)"),
+    .max(5000),
+    // .refine((val) => !/```|function\s+\w+\(/.test(val), "Challenge cannot contain code snippets (no code blocks or function declarations)"),
   // v2.0 New Fields
-  verificationCriteria: z.array(z.string().min(5).max(150)).min(3).max(10).optional().default([]),
+  verificationCriteria: z.array(z.string().min(5).max(300)).min(1).max(20).optional().default([]),
   groundTruth: z.string().optional(),
   starterCode: z.string().optional(),
 });
@@ -35,9 +35,12 @@ export const RoadmapSchema = z.object({
   topic: z.string().min(3).max(100),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address").optional(),
+  sessionId: z.string().uuid("Invalid session ID").optional(),
+  isStaked: z.boolean().optional().default(false),
   modules: z.array(ModuleContentSchema)
     .min(3, "Roadmap must have at least 3 modules")
-    .max(10, "Roadmap cannot have more than 10 modules")
+    .max(50, "Roadmap cannot have more than 50 modules")
     .refine(
       (modules) => {
         // Check if modules are sorted by order
@@ -73,6 +76,8 @@ export const GenerateRequestSchema = z.object({
   topic: z.string().min(3).max(100).trim(),
   existingTitles: z.array(z.string()).optional(),
   version: z.enum(['lite', 'pro']).default('lite'),
+  mode: z.enum(['learn', 'proof']).default('learn'),
+  userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address").optional(),
 }).strict();
 
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
@@ -80,11 +85,11 @@ export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
 export const GenerateResponseSchema = z.object({
   title: z.string().min(5).max(100),
   modules: z.array(z.object({
-    order: z.number().int().min(1).max(10),
+    order: z.number().int().min(1).max(100),
     title: z.string().min(5).max(100),
     context: z.string()
       .min(20)
-      .max(300),
+      .max(1000),
       // .regex(/(because|important|essential)/i, "Context must explain WHY"),
     docUrl: z.string().url().startsWith("https://", "Must be a valid HTTPS URL").optional(),
     docs: z.array(z.object({
@@ -93,9 +98,9 @@ export const GenerateResponseSchema = z.object({
     })).optional(),
     challenge: z.string()
       .min(30)
-      .max(500)
-      .refine((val) => !/```|function\s+\w+\(/.test(val), "Challenge cannot contain code snippets"),
-  })).min(3).max(10),
+      .max(5000),
+      // .refine((val) => !/```|function\s+\w+\(/.test(val), "Challenge cannot contain code snippets"),
+  })).min(3).max(50),
 });
 
 export type GenerateResponse = z.infer<typeof GenerateResponseSchema>;

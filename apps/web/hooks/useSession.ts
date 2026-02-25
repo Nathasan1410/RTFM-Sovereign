@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useAccount } from 'wagmi'
 
-const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:8080'
+const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:3001'
 
 /**
  * Interface representing a milestone within a learning session

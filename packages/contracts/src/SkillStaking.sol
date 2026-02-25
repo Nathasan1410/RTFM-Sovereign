@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -91,15 +91,18 @@ contract SkillStaking is ReentrancyGuard, Ownable {
 
     /**
      * @notice Claims a refund based on the final score.
-     * @dev Called by the TEE (Agent 2) after final attestation.
+     * @dev Can be called by the TEE or by the user directly after completing all milestones.
      * @param user The user address.
      * @param skill The skill topic.
      * @param finalScore The final score (0-100).
      */
-    function claimRefund(address user, string calldata skill, uint256 finalScore) external onlyTEE nonReentrant {
+    function claimRefund(address user, string calldata skill, uint256 finalScore) external nonReentrant {
         Stake storage userStake = stakes[user][skill];
         require(userStake.amount > 0, "No active stake found");
         require(!userStake.refunded, "Stake already refunded");
+        
+        // Allow either TEE or the user themselves to claim
+        require(msg.sender == teeAttestor || msg.sender == user, "Only TEE or user can claim");
 
         uint256 refundAmount;
         if (finalScore >= PASS_THRESHOLD) {

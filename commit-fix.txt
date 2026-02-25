@@ -1,1 +1,0 @@
-fix: Remove API key providers that conflict with EigenAI wallet auth

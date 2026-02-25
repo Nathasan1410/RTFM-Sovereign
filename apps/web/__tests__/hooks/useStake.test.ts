@@ -103,7 +103,7 @@ describe('useStake', () => {
     const { result } = renderHook(() => useStake(mockAddress, mockSkill))
 
     await act(async () => {
-      await result.current.claimRefund(mockSkill)
+      await result.current.claimRefund(mockSkill, 100)
     })
 
     expect(result.current.error).toBeNull()

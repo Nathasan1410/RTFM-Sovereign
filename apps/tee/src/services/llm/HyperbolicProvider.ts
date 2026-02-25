@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LLMProvider, Challenge } from './types';
+import { LLMProvider, Challenge, RoadmapResponse } from './types';
 import { logger } from '../../utils/logger';
 
 export class HyperbolicProvider implements LLMProvider {
@@ -83,6 +83,109 @@ export class HyperbolicProvider implements LLMProvider {
       };
     } catch (error) {
       logger.error({ error: (error as Error).message, provider: this.name }, 'Hyperbolic generation failed');
+      throw error;
+    }
+  }
+
+  async generateRoadmap(userAddress: string, topic: string, seed: number): Promise<RoadmapResponse> {
+    await this.consumeToken();
+    
+    const prompt = `Generate a rigorous learning roadmap for "${topic}" with exactly 7 modules.
+    Structure: { 
+      "title": "Project Title",
+      "modules": [ 
+        { 
+          "order": 1,
+          "title": "Step Title",
+          "context": "Explanation of concept and why it's essential...",
+          "docs": [
+            { "title": "MDN Reference", "url": "https://developer.mozilla.org/..." }
+          ],
+          "challenge": "Specific instruction on what to build...",
+          "verificationCriteria": [
+            "Check for div with class 'card'",
+            "Check width is fixed or max-width",
+            "Check padding is applied"
+          ],
+          "groundTruth": "<div class='card'>...</div>",
+          "starterCode": "<!-- Write your code here -->"
+        }
+      ]
+    }
+    Generate 5-7 micro-steps. Output valid JSON only. Seed: ${seed}`;
+
+    try {
+      logger.info({ provider: this.name, user: userAddress, topic }, 'Requesting Hyperbolic roadmap generation');
+
+      const response = await axios.post(
+        this.endpoint,
+        {
+          model: 'meta-llama/Llama-3-70b-chat-hf',
+          messages: [
+            { role: 'system', content: 'You are a Brutal Tech Mentor & Project Architect. Output valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      const roadmap = JSON.parse(content);
+
+      if (!roadmap.modules || roadmap.modules.length !== 7) {
+        throw new Error('Invalid roadmap structure: Modules count mismatch');
+      }
+
+      return {
+        title: roadmap.title,
+        modules: roadmap.modules
+      };
+    } catch (error) {
+      logger.error({ error: (error as Error).message, provider: this.name }, 'Hyperbolic roadmap generation failed');
+      throw error;
+    }
+  }
+
+  async generateJson(prompt: string): Promise<any> {
+    await this.consumeToken();
+
+    try {
+      logger.info({ provider: this.name }, 'Requesting JSON generation');
+
+      const response = await axios.post(
+        this.endpoint,
+        {
+          model: 'meta-llama/Llama-3-70b-chat-hf',
+          messages: [
+            { role: 'system', content: 'You are a JSON API. Output valid JSON only. No markdown, no explanations.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.1,
+          max_tokens: 4000,
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      return JSON.parse(content);
+    } catch (error) {
+      logger.error({ error: (error as Error).message, provider: this.name }, 'JSON generation failed');
       throw error;
     }
   }

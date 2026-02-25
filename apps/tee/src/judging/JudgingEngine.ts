@@ -1,9 +1,12 @@
+import { z } from 'zod';
 import { 
   CodeSubmission, 
   JudgingRequest, 
   JudgingResult, 
   RubricSchema 
 } from './schemas';
+
+export { JudgingRequest } from './schemas';
 import { Layer1Analyzer } from './layers/Layer1Analyzer';
 import { Layer2Analyzer, MockEigenAIClient } from './layers/Layer2Analyzer';
 import { CacheManager } from './cache/CacheManager';

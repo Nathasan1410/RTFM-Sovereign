@@ -64,6 +64,7 @@ export class LLMService {
           this.failureCounts[i] = 0;
         }
         
+        logger.info({ provider: provider.name }, '✅ Provider SUCCESS - using this response');
         return result;
 
       } catch (error) {
@@ -111,6 +112,7 @@ export class LLMService {
           this.failureCounts[i] = 0;
         }
         
+        logger.info({ provider: provider.name }, '✅ Provider SUCCESS - using this response');
         return result;
 
       } catch (error) {
@@ -122,6 +124,61 @@ export class LLMService {
           error: (error as Error).message, 
           provider: provider.name,
           failures: this.failureCounts[i] 
+        }, 'Provider failed');
+
+        if (this.failureCounts[i] >= this.FAILURE_THRESHOLD) {
+          this.circuitOpen[i] = true;
+          logger.warn({ provider: provider.name }, 'Circuit Breaker TRIPPED: Switching to next provider');
+        }
+      }
+    }
+
+    throw new Error(`All LLM providers failed. Last error: ${lastError?.message}`);
+  }
+
+  /**
+   * Generate JSON response from LLM
+   * Generic method for structured JSON output
+   * 
+   * @param prompt - The prompt to send to the LLM
+   * @returns Parsed JSON response
+   */
+  async generateJson(prompt: string): Promise<any> {
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < this.providers.length; i++) {
+      const provider = this.providers[i];
+
+      if (this.circuitOpen[i]) {
+        if (Date.now() - this.lastFailureTimes[i] > this.COOLDOWN_PERIOD) {
+          logger.info({ provider: provider.name }, 'Circuit Breaker HALF_OPEN: Retrying provider...');
+        } else {
+          logger.warn({ provider: provider.name }, 'Circuit Breaker OPEN: Skipping provider...');
+          continue;
+        }
+      }
+
+      try {
+        const result = await provider.generateJson(prompt);
+
+        if (this.circuitOpen[i]) {
+          logger.info({ provider: provider.name }, 'Circuit Breaker CLOSED: Provider recovered');
+          this.circuitOpen[i] = false;
+          this.failureCounts[i] = 0;
+        }
+
+        logger.info({ provider: provider.name }, '✅ Provider SUCCESS - using this response');
+        return result;
+
+      } catch (error) {
+        this.failureCounts[i]++;
+        this.lastFailureTimes[i] = Date.now();
+        lastError = error as Error;
+
+        logger.error({
+          error: (error as Error).message,
+          provider: provider.name,
+          failures: this.failureCounts[i]
         }, 'Provider failed');
 
         if (this.failureCounts[i] >= this.FAILURE_THRESHOLD) {

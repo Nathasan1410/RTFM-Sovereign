@@ -1,45 +1,128 @@
-# Gramine Manifest Template
+# Gramine Manifest Template for EigenCompute TEE
+# SGX-enabled enclave configuration
+
 loader.entrypoint = "node"
 libos.entrypoint = "/usr/bin/node"
 
-# Environment variables - SECURITY CRITICAL
+# =============================================================================
+# Environment Variables - SECURITY CRITICAL
 # Only allow specific env vars to pass through from host (KMS injection)
+# =============================================================================
 loader.env.LD_LIBRARY_PATH = "/lib:/usr/lib:/usr/lib/x86_64-linux-gnu"
 loader.env.NODE_ENV = { passthrough = true }
 loader.env.MNEMONIC = { passthrough = true }
 loader.env.CONTRACT_ADDRESS = { passthrough = true }
 loader.env.CHAIN_ID = { passthrough = true }
-loader.env.CEREBRAS_API_KEY = { passthrough = true }
 
-# Isolation: Prevent host environment leakage
+# AI Service API Keys
+loader.env.CEREBRAS_API_KEY = { passthrough = true }
+loader.env.GROQ_API_KEY = { passthrough = true }
+loader.env.BRAVE_API_KEY = { passthrough = true }
+loader.env.HYPERBOLIC_API_KEY = { passthrough = true }
+loader.env.EIGENAI_API_KEY = { passthrough = true }
+
+# SGX Attestation Configuration
+loader.env.SGX_ENABLED = { passthrough = true }
+loader.env.PCCS_URL = { passthrough = true }
+loader.env.USE_MOCK_TEE = { passthrough = true }
+loader.env.SGX_SEALED_KEY_PATH = { passthrough = true }
+
+# Blockchain Configuration
+loader.env.TEE_PRIVATE_KEY = { passthrough = true }
+loader.env.CONTRACT_ATTESTATION = { passthrough = true }
+loader.env.CONTRACT_STAKING = { passthrough = true }
+loader.env.RPC_URL = { passthrough = true }
+
+# IPFS Configuration
+loader.env.PINATA_API_KEY = { passthrough = true }
+loader.env.PINATA_SECRET_API_KEY = { passthrough = true }
+loader.env.PINATA_JWT = { passthrough = true }
+
+# Redis Configuration
+loader.env.REDIS_URL = { passthrough = true }
+
+# =============================================================================
+# Isolation Settings
+# =============================================================================
 loader.insecure__use_host_env = false
 loader.insecure__allow_eventfd = false
 
-# Trust Cerebras API CA and Node.js runtime
+# =============================================================================
+# SGX Memory Settings
+# =============================================================================
+# EPC (Enclave Page Cache) size - must be a power of 2 and match hardware
+# 2GB = 2147483648 bytes (max for most SGX hardware)
+sgx.enclave_size = "2G"
+sgx.thread_num = 8
+
+# =============================================================================
+# SGX Remote Attestation
+# =============================================================================
+sgx.remote_attestation = true
+sgx.enable_stats = true
+
+# =============================================================================
+# Trusted Files
+# These files are integrity-checked before enclave launch
+# =============================================================================
 sgx.trusted_files = [
   "file:/etc/ssl/certs/ca-certificates.crt",
+  "file:/etc/ssl/certs/",
   "file:/usr/bin/node",
   "file:/app/dist/server.js",
   "file:/app/node_modules/",
 ]
 
-# Allow access to random device (for key gen fallback & SSL)
+# =============================================================================
+# Allowed Files
+# Files that the enclave can read/write (not integrity-checked)
+# =============================================================================
 sgx.allowed_files = [
   "file:/dev/urandom",
   "file:/dev/random",
   "file:/app/sealed/",
+  "file:/tmp/",
+  "file:/proc/cpuinfo",
 ]
 
-# Protected files (Encrypted by SGX sealing key)
+# =============================================================================
+# SGX Device Access (DCAP Quote Generation)
+# =============================================================================
+sgx.allowed_files += [
+  "file:/dev/sgx_enclave",
+  "file:/dev/sgx_provision",
+  "file:/var/run/aesmd/aesm.socket",
+]
+
+# =============================================================================
+# Protected Files (Encrypted by SGX Sealing Key)
+# These files are encrypted with a key derived from the enclave measurement
+# Only the same enclave can decrypt them
+# =============================================================================
 sgx.protected_files = [
   "file:/sealed/tee-key.json",
-  "file:/sealed/cerebras-key.txt"
+  "file:/sealed/cerebras-key.txt",
+  "file:/tmp/tee_key.sealed",
 ]
 
-# Memory settings (2GB EPC limit for EigenCompute)
-sgx.enclave_size = "2G"
-sgx.thread_num = 8
-sgx.remote_attestation = true
-
-# Networking (required for Express & External APIs)
+# =============================================================================
+# Networking Configuration
+# Required for:
+# - Express HTTP server
+# - External API calls (AI services)
+# - Intel PCCS for quote verification
+# =============================================================================
 sys.insecure__allow_eventfd = true
+
+# Allow outbound HTTPS connections
+sgx.allowed_tcp_ports = [
+  443,  # HTTPS (Intel PCCS, AI services)
+  80,   # HTTP (fallback)
+]
+
+# =============================================================================
+# Debug Settings (Development Only)
+# =============================================================================
+# Uncomment for debugging (DO NOT use in production)
+#sgx.debug = true
+#loader.debug = true

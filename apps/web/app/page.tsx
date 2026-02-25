@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Terminal, Zap, Flame } from "lucide-react";
+import { ArrowRight, Terminal, Zap, Flame, Wallet } from "lucide-react";
+import { useAccount } from "wagmi";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RecentRoadmaps } from "@/components/recent-roadmaps";
+import { StakingModal } from "@/components/staking-modal";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Roadmap } from "@/types/schemas";
@@ -18,26 +20,18 @@ export default function Home() {
   const [version, setVersion] = useState<'lite' | 'pro'>('lite');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStakingModalOpen, setIsStakingModalOpen] = useState(false);
+  const [pendingTopic, setPendingTopic] = useState("");
   const router = useRouter();
+  const { address, isConnected } = useAccount();
   const addRoadmap = useAppStore((state) => state.addRoadmap);
   const apiKeys = useAppStore((state) => state.apiKeys);
   const roadmaps = useAppStore((state) => state.roadmaps);
   const hasRoadmaps = Object.keys(roadmaps).length > 0;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanTopic = topic.trim();
-    
-    // Validation
-    if (cleanTopic.length < 3) {
-      setError("Topic must be at least 3 characters");
-      return;
-    }
-    if (cleanTopic.length > 100) {
-      setError("Topic must be less than 100 characters");
-      return;
-    }
-
+  const handleGenerateRoadmap = async (mode: 'learn' | 'proof') => {
+    const cleanTopic = pendingTopic.trim();
+    setIsStakingModalOpen(false);
     setError(null);
     setIsLoading(true);
 
@@ -49,10 +43,18 @@ export default function Home() {
       if (apiKeys.groq) headers['x-api-key-groq'] = apiKeys.groq;
       if (apiKeys.cerebras) headers['x-api-key-cerebras'] = apiKeys.cerebras;
 
+      const requestBody: any = { topic: cleanTopic, existingTitles, version, mode };
+      if (isConnected && address) {
+        requestBody.userAddress = address;
+        console.log('[Home Page] Wallet connected:', address);
+      } else {
+        console.log('[Home Page] Wallet not connected, using demo mode');
+      }
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ topic: cleanTopic, existingTitles, version }),
+        body: JSON.stringify(requestBody),
       });
 
       // Check if response is JSON
@@ -76,6 +78,9 @@ export default function Home() {
         topic: cleanTopic,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        userAddress: data.userAddress,
+        sessionId: data.sessionId,
+        isStaked: mode === 'proof',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         modules: data.modules.map((m: any) => ({
           ...m,
@@ -93,12 +98,30 @@ export default function Home() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanTopic = topic.trim();
+
+    // Validation
+    if (cleanTopic.length < 3) {
+      setError("Topic must be at least 3 characters");
+      return;
+    }
+    if (cleanTopic.length > 100) {
+      setError("Topic must be less than 100 characters");
+      return;
+    }
+
+    setPendingTopic(cleanTopic);
+    setIsStakingModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-56px)] py-20 px-6">
       {/* Hero Section */}
       <div className="text-center max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-zinc-50">
-          READ THE F*CKING MANUAL
+          READ THE F*CKING MANUAL<span className="text-zinc-500 animate-[blink_1s_step-end_infinite] text-[1.2em] -ml-4">|</span>
         </h1>
         <p className="text-lg text-zinc-400 max-w-lg mx-auto leading-relaxed">
           AI generates structured roadmaps that force you to read official documentation. 
@@ -140,10 +163,35 @@ export default function Home() {
           </button>
         </div>
         <p className="text-xs text-zinc-600 text-center mt-2 font-mono">
-          {version === 'lite' 
+          {version === 'lite'
             ? 'Single-pass generation • 5-7 modules • Great for quick learning'
             : 'Multi-agent system • Deep research • Specialized per module'}
         </p>
+      </div>
+
+      {/* Wallet Connection Status */}
+      <div className="w-full max-w-xl mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+        <div className="flex items-center justify-center gap-2 text-xs font-mono">
+          {isConnected ? (
+            <>
+              <div className="flex items-center gap-2 bg-zinc-800 px-3 py-1.5 rounded-sm border border-zinc-700">
+                <Wallet className="w-3.5 h-3.5 text-green-500" />
+                <span className="text-zinc-300">
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </span>
+              </div>
+              <span className="text-zinc-600">Wallet connected</span>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-sm border border-zinc-800">
+                <Wallet className="w-3.5 h-3.5 text-zinc-600" />
+                <span className="text-zinc-500">Not connected</span>
+              </div>
+              <span className="text-zinc-600">Demo mode (no wallet)</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Input Interface */}
@@ -240,6 +288,15 @@ export default function Home() {
 
       {/* Recent Roadmaps */}
       <RecentRoadmaps />
+
+      {/* Staking Mode Modal */}
+      <StakingModal
+        isOpen={isStakingModalOpen}
+        onClose={() => setIsStakingModalOpen(false)}
+        onLearnMode={() => handleGenerateRoadmap('learn')}
+        onProofMode={() => handleGenerateRoadmap('proof')}
+        topic={pendingTopic}
+      />
     </div>
   );
 }

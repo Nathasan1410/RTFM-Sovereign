@@ -65,8 +65,14 @@ export const SessionStateSchema = z.object({
   staking: z.object({
     amount: z.number(),
     staked_at: z.number(),
-    milestone_checkpoints: z.array(z.number()),
-    refund_claimed: z.boolean()
+    milestone_checkpoints: z.array(z.object({
+      milestone_id: z.number(),
+      checkpointed_at: z.string(),
+      tx_hash: z.string()
+    })),
+    refund_claimed: z.boolean(),
+    refunded_at: z.string().optional(),
+    refund_tx: z.string().optional()
   }),
   ai_agents: z.object({
     agent_3_instances: z.array(z.object({
@@ -82,8 +88,13 @@ export const SessionStateSchema = z.object({
       score: z.number(),
       feedback: z.string(),
       submission_hash: z.string(),
-      timestamp: z.number()
-    }))
+      timestamp: z.number(),
+      verified_at: z.string().optional()
+    })),
+    attestation_tx: z.string().optional(),
+    ipfs_hash: z.string().optional(),
+    final_score: z.number().optional(),
+    attested_at: z.string().optional()
   })
 });
 

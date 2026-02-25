@@ -31,7 +31,9 @@ export class ArchitectAgent {
     const seedString = `${userAddress}:${topic}:${attemptNumber}`;
     const seedHash = keccak256(toUtf8Bytes(seedString));
     // AI providers need integer seed. Take first 8 chars (32 bits)
-    const seedInt = parseInt(seedHash.substring(2, 10), 16); 
+    let seedInt = parseInt(seedHash.substring(2, 10), 16);
+    // EigenAI API has issues with seeds >= 3B, ensure safe range
+    seedInt = seedInt % 1000000000; 
 
     // 2. Call LLM Service (EigenAI -> Groq Fallback)
     const llmChallenge = await this.llmService.generateChallenge(userAddress, topic, seedInt);
@@ -61,7 +63,9 @@ export class ArchitectAgent {
     // 1. Compute Deterministic Seed
     const seedString = `${userAddress}:${topic}:${attemptNumber}`;
     const seedHash = keccak256(toUtf8Bytes(seedString));
-    const seedInt = parseInt(seedHash.substring(2, 10), 16);
+    let seedInt = parseInt(seedHash.substring(2, 10), 16);
+    // EigenAI API has issues with seeds >= 3B, ensure safe range
+    seedInt = seedInt % 1000000000;
 
     // 2. Call LLM Service (EigenAI -> Groq Fallback)
     const roadmap = await this.llmService.generateRoadmap(userAddress, topic, seedInt);

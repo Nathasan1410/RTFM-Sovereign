@@ -13,7 +13,18 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy-chunked.ts",
+    "deploy:local": "hardhat run scripts/deploy-chunked.ts --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy-chunked.ts --network sepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy-chunked.ts --network mainnet",
+    "deploy:test": "hardhat run scripts/deploy-testnet.ts --network sepolia",
+    "deploy:staking": "hardhat run scripts/deploy-staking.ts --network sepolia",
+    "deploy:attestation": "hardhat run scripts/deploy-attestation.ts --network sepolia",
+    "deploy:attestation:helpers": "hardhat run scripts/deploy-attestation-with-helpers.ts --network sepolia",
+    "test:local": "hardhat run scripts/test-local.ts --network localhost",
+    "verify": "hardhat verify",
+    "test:coverage": "hardhat coverage"
   },
   "keywords": [],
   "author": "",
@@ -22,10 +33,12 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@nomicfoundation/hardhat-ethers": "^3.1.3",
+    "@nomicfoundation/hardhat-ignition": "^0.15.16",
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.17",
     "@nomicfoundation/hardhat-network-helpers": "^1.1.2",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@nomicfoundation/hardhat-verify": "^2.1.3",
+    "@nomicfoundation/ignition-core": "^0.15.15",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "@types/chai": "^4.3.20",

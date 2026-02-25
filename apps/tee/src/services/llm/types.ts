@@ -43,6 +43,7 @@ export interface Question {
 export interface LLMProvider {
   generateChallenge(userAddress: string, topic: string, seed?: number): Promise<Challenge>;
   generateRoadmap(userAddress: string, topic: string, seed?: number): Promise<RoadmapResponse>;
+  generateJson(prompt: string): Promise<any>;
   name: string;
   isHealthy(): Promise<boolean>;
 }

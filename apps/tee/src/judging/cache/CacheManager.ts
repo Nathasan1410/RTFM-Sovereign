@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { JudgingResult, CodeSubmission, RubricSchema } from '../schemas';
 
 export interface CacheEntry {
@@ -34,7 +35,9 @@ export class InMemoryCache implements ICacheStore {
   public async set(key: string, value: CacheEntry): Promise<void> {
     if (this.cache.size >= this.maxEntries) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, value);
   }
@@ -57,7 +60,7 @@ export class RedisCache implements ICacheStore {
     this.redisUrl = redisUrl;
   }
   
-  private async connect(): Promise<void> {
+  public async connect(): Promise<void> {
     if (this.isConnected) return;
     
     try {

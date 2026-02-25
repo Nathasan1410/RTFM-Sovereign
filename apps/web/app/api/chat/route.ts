@@ -19,11 +19,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { message, context } = ChatRequestSchema.parse(body);
 
-    const groqKey = req.headers.get('x-api-key-groq') || undefined;
-    const cerebrasKey = req.headers.get('x-api-key-cerebras') || undefined;
-    const braveKey = req.headers.get('x-api-key-brave') || undefined;
+    const groqKey = process.env.GROQ_API_KEY || undefined;
+    const cerebrasKey = process.env.CEREBRAS_API_KEY || undefined;
+    const braveKey = process.env.BRAVE_API_KEY || undefined;
+    const eigenPrivateKey = process.env.EIGENAI_PRIVATE_KEY || undefined;
 
-    const { client, defaultModel } = getAIClient({ groq: groqKey, cerebras: cerebrasKey });
+    const { client, defaultModel } = getAIClient({
+      groq: groqKey,
+      cerebras: cerebrasKey,
+      eigenPrivateKey: eigenPrivateKey
+    });
 
     // Perform a relevant search to augment context
     const searchQuery = `${context.topic} ${context.moduleTitle} ${message}`;

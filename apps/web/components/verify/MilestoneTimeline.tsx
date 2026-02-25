@@ -5,7 +5,17 @@ import { GitCommit, FileCode, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchIpfsContent } from '@/lib/ipfs';
+
+interface MilestoneData {
+  id: number;
+  title: string;
+  code: string;
+  score: number;
+  feedback: string;
+  timestamp: number;
+}
 
 interface MilestoneTimelineProps {
   milestoneScores: number[];
@@ -14,13 +24,36 @@ interface MilestoneTimelineProps {
 
 export function MilestoneTimeline({ milestoneScores, ipfsHash }: MilestoneTimelineProps) {
   const [selectedMilestone, setSelectedMilestone] = useState<number | null>(null);
+  const [realMilestones, setRealMilestones] = useState<MilestoneData[] | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const milestones = milestoneScores.map((score, index) => ({
-    id: index + 1,
-    score,
-    isCheckpoint: index === 2 || index === 4,
-    timestamp: Date.now() - ((5 - index) * 86400000)
-  }));
+  useEffect(() => {
+    if (ipfsHash) {
+      setLoading(true);
+      fetchIpfsContent<{ milestones?: MilestoneData[] }>(ipfsHash)
+        .then(data => {
+          if (data?.milestones) {
+            setRealMilestones(data.milestones);
+          }
+        })
+        .catch(err => console.error('Failed to fetch milestones from IPFS:', err))
+        .finally(() => setLoading(false));
+    }
+  }, [ipfsHash]);
+
+  const milestones = realMilestones && realMilestones.length > 0
+    ? realMilestones.map((m, index) => ({
+        id: m.id,
+        score: m.score,
+        isCheckpoint: index === 2 || index === 4,
+        timestamp: m.timestamp
+      }))
+    : milestoneScores.map((score, index) => ({
+        id: index + 1,
+        score,
+        isCheckpoint: index === 2 || index === 4,
+        timestamp: Date.now() - ((5 - index) * 86400000)
+      }));
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'bg-green-500';

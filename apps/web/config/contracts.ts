@@ -396,6 +396,11 @@ export const SKILL_STAKING_ABI = [
         "internalType": "string",
         "name": "skill",
         "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "finalScore",
+        "type": "uint256"
       }
     ],
     "name": "claimRefund",
@@ -440,6 +445,29 @@ export const SKILL_STAKING_ABI = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "skill",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "milestoneId",
+        "type": "uint256"
+      }
+    ],
+    "name": "recordMilestone",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "newOwner",
         "type": "address"
       }
@@ -475,6 +503,6 @@ export const SKILL_STAKING_ABI = [
   }
 ] as const
 
-export const SKILL_ATTESTATION_ADDRESS = process.env.NEXT_PUBLIC_SKILL_ATTESTATION_ADDRESS as `0x${string}` || '0x621218a5C6Ef20505AB37D8b934AE83F18CD778d'
-export const SKILL_STAKING_ADDRESS = process.env.NEXT_PUBLIC_SKILL_STAKING_ADDRESS as `0x${string}` || '0xAc9Ad4A5e01e4351BD42d60858557cAEe0F50F73'
+export const SKILL_ATTESTATION_ADDRESS = process.env.NEXT_PUBLIC_SKILL_ATTESTATION_ADDRESS as `0x${string}` || process.env.NEXT_PUBLIC_ATTESTATION_CONTRACT as `0x${string}` || '0x621218a5C6Ef20505AB37D8b934AE83F18CD778d'
+export const SKILL_STAKING_ADDRESS = process.env.NEXT_PUBLIC_SKILL_STAKING_ADDRESS as `0x${string}` || process.env.NEXT_PUBLIC_STAKING_CONTRACT as `0x${string}` || '0xAc9Ad4A5e01e4351BD42d60858557cAEe0F50F73'
 export const STAKE_AMOUNT = '0.001'

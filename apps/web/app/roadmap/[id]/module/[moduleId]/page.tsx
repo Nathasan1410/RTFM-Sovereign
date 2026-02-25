@@ -3,13 +3,53 @@
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, ExternalLink, BookOpen, ChevronLeft, ChevronRight, Play, AlertTriangle, Lightbulb, Check, MessageSquare, ArrowRight } from "lucide-react";
+import { ArrowLeft, CheckCircle, ExternalLink, BookOpen, ChevronLeft, ChevronRight, Play, AlertTriangle, Lightbulb, Check, MessageSquare, ArrowRight, LayoutList } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Roadmap, ModuleContent, ProgressEntry } from "@/types/schemas";
-import { VerifyResponse } from "@/types/verify";
+import { VerifyResponse, DynamicMilestone, DynamicMicroStep } from "@/types/verify";
+import { teeApi } from "@/lib/teeClient";
+import CodeEditor from "@/components/CodeEditor";
+import StepProgress from "@/components/StepProgress";
+
+const TEE_URL = process.env.NEXT_PUBLIC_TEE_URL || 'http://localhost:3001';
+
+// Helper function to extract verification criteria from challenge text
+function extractCriteriaFromChallenge(challenge: string): string[] {
+  const criteria: string[] = [];
+
+  // Try to extract from "Requirements:" section
+  const requirementsMatch = challenge.match(/### Requirements:?\s*([\s\S]*?)(?:###|$)/i);
+  if (requirementsMatch && requirementsMatch[1]) {
+    const reqLines = requirementsMatch[1].split('\n')
+      .map(line => line.replace(/^- /, '').trim())
+      .filter(line => line.length > 0 && !line.startsWith('#'));
+    criteria.push(...reqLines);
+  }
+
+  // Try to extract from "Success Criteria:" section
+  const successMatch = challenge.match(/## Success Criteria\s*([\s\S]*?)(?:##|$)/i);
+  if (successMatch && successMatch[1]) {
+    const successLines = successMatch[1].split('\n')
+      .map(line => line.replace(/^- \[ \] /, '').trim())
+      .filter(line => line.length > 0 && !line.startsWith('#'));
+    criteria.push(...successLines);
+  }
+  
+  // If still no criteria, use default based on common patterns
+  if (criteria.length === 0) {
+    if (challenge.includes('Component')) criteria.push('Component is properly defined');
+    if (challenge.includes('props') || challenge.includes('Props')) criteria.push('Props are used correctly');
+    if (challenge.includes('state') || challenge.includes('State') || challenge.includes('useState')) criteria.push('State management is implemented');
+    if (challenge.includes('style') || challenge.includes('Styling') || challenge.includes('Tailwind')) criteria.push('Styling is applied correctly');
+    if (challenge.includes('event') || challenge.includes('Event') || challenge.includes('handler')) criteria.push('Event handlers are implemented');
+    if (criteria.length === 0) criteria.push('Code meets challenge requirements');
+  }
+  
+  return criteria;
+}
 
 type ModuleWorkspaceProps = {
   roadmapId: string;
@@ -21,6 +61,7 @@ type ModuleWorkspaceProps = {
   apiKeys: { groq?: string | undefined; cerebras?: string | undefined; brave?: string | undefined; serper?: string | undefined };
   toggleCompletion: (roadmapId: string, moduleId: string, isCompleted: boolean) => void;
   saveModuleProgress: (roadmapId: string, moduleId: string, updates: Partial<ProgressEntry>) => Promise<void>;
+  progressState: Record<string, { isCompleted?: boolean; userCode?: string | undefined } | undefined>;
 };
 
 function ModuleWorkspace({
@@ -33,17 +74,23 @@ function ModuleWorkspace({
   apiKeys,
   toggleCompletion,
   saveModuleProgress,
+  progressState,
 }: ModuleWorkspaceProps) {
   const [userCode, setUserCode] = useState(initialUserCode);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const [showGroundTruth, setShowGroundTruth] = useState(isCompleted);
-  
+  const [showStepProgress, setShowStepProgress] = useState(false);
+
   // Chatbot State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+
+  // Get current module index for step progress
+  const currentIndex = roadmap.modules.findIndex(m => m.id === moduleId);
+  const moduleIndex = currentIndex + 1;
 
   const handleVerify = async () => {
     setIsVerifying(true);
@@ -52,38 +99,98 @@ function ModuleWorkspace({
     await saveModuleProgress(roadmapId, moduleId, { userCode });
 
     try {
-      if (!currentModule.verificationCriteria || currentModule.verificationCriteria.length === 0) {
-        setVerificationResult({
-          status: "PASS",
-          feedback: "No automated verification for this step. Self-verify based on instructions.",
+      // Check if we have a TEE session (production mode with staking)
+      if (roadmap.sessionId && roadmap.userAddress) {
+        const moduleIndex = roadmap.modules.findIndex(m => m.id === moduleId);
+        const milestoneId = moduleIndex + 1;
+
+        try {
+          const response = await teeApi.verification.verifyCode(
+            roadmap.userAddress,
+            roadmap.sessionId,
+            milestoneId,
+            [{
+              file_path: 'index.tsx',
+              code: userCode
+            }],
+            {
+              criteria: currentModule.verificationCriteria
+            }
+          );
+
+          if (response.data.success) {
+            const result = response.data.result;
+            const report = response.data.report;
+
+            setVerificationResult({
+              status: result.verified ? "PASS" : "FAIL",
+              feedback: report.summary || `Score: ${result.score}`,
+              checks: report.checks || [],
+              hints: report.feedback ? [report.feedback] : []
+            });
+
+            if (result.verified) {
+              await toggleCompletion(roadmap.id, currentModule.id, true);
+              setShowGroundTruth(true);
+
+              // Record milestone on-chain if staked
+              if (roadmap.isStaked) {
+                try {
+                  const completedModules = roadmap.modules.filter(m => {
+                    const progress = progressState[`${roadmapId}_${m.id}`];
+                    return progress?.isCompleted;
+                  });
+                  const completionPercentage = (completedModules.length / roadmap.modules.length) * 100;
+                  const contractMilestoneId = Math.min(5, Math.floor(completionPercentage / 20));
+
+                  await fetch(`${TEE_URL}/contract/record-milestone`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      sessionId: roadmap.sessionId,
+                      milestoneId: contractMilestoneId
+                    })
+                  });
+                  console.log(`[Module Page] Recorded milestone ${contractMilestoneId} on-chain (${completionPercentage}% complete)`);
+                } catch (chainError) {
+                  console.warn('[Module Page] Failed to record milestone on-chain:', chainError);
+                }
+              }
+            }
+          } else {
+            throw new Error(response.data.error || "TEE verification failed");
+          }
+        } catch (teeError) {
+          console.warn('[TEE Verification] Failed, falling back to local verification:', teeError);
+          throw teeError;
+        }
+      } else {
+        // Demo mode or no TEE session - use EigenAI verification (primary)
+        // Generate verification criteria from challenge if not provided
+        const criteria = currentModule.verificationCriteria && currentModule.verificationCriteria.length > 0
+          ? currentModule.verificationCriteria
+          : extractCriteriaFromChallenge(currentModule.challenge);
+
+        // Call verification API - private key is handled server-side (NEVER exposed to frontend)
+        const response = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userCode,
+            requirements: criteria,
+            topic: roadmap.topic,
+          }),
         });
-        await toggleCompletion(roadmap.id, currentModule.id, true);
-        setIsVerifying(false);
-        return;
-      }
 
-      const verifyHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (apiKeys.groq) verifyHeaders["x-api-key-groq"] = apiKeys.groq;
-      if (apiKeys.cerebras) verifyHeaders["x-api-key-cerebras"] = apiKeys.cerebras;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Verification failed");
 
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        headers: verifyHeaders,
-        body: JSON.stringify({
-          userCode,
-          requirements: currentModule.verificationCriteria,
-          topic: roadmap.topic,
-        }),
-      });
+        setVerificationResult(data);
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Verification failed");
-
-      setVerificationResult(data);
-
-      if (data.status === "PASS") {
-        await toggleCompletion(roadmap.id, currentModule.id, true);
-        setShowGroundTruth(true);
+        if (data.status === "PASS") {
+          await toggleCompletion(roadmap.id, currentModule.id, true);
+          setShowGroundTruth(true);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -103,14 +210,10 @@ function ModuleWorkspace({
     setIsChatLoading(true);
 
     try {
-      const chatHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (apiKeys.groq) chatHeaders["x-api-key-groq"] = apiKeys.groq;
-      if (apiKeys.cerebras) chatHeaders["x-api-key-cerebras"] = apiKeys.cerebras;
-      if (apiKeys.brave) chatHeaders["x-api-key-brave"] = apiKeys.brave;
-
+      // API keys are handled server-side - NEVER expose private keys to frontend
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: chatHeaders,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg,
           context: {
@@ -237,41 +340,96 @@ function ModuleWorkspace({
                   Load Solution
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStepProgress(!showStepProgress)}
+                className={cn(
+                  "h-6 text-xs gap-1",
+                  showStepProgress && "bg-zinc-800 text-zinc-200"
+                )}
+              >
+                <LayoutList className="w-3 h-3" />
+                {showStepProgress ? "Hide Steps" : "Show Steps"}
+              </Button>
             </div>
           </div>
 
-          <div className="relative border border-zinc-800 rounded-sm bg-[#0d0d0d] font-mono text-sm">
-            <textarea
-              value={userCode}
-              onChange={(e) => setUserCode(e.target.value)}
-              placeholder="// Write your code here..."
-              className="w-full h-[300px] p-4 bg-transparent text-zinc-300 resize-none focus:outline-none focus:ring-1 focus:ring-zinc-700"
-              spellCheck={false}
-            />
-            <div className="absolute bottom-4 right-4">
-              <Button
-                onClick={handleVerify}
-                disabled={isVerifying || isCompleted}
-                className={cn(
-                  "font-mono font-bold tracking-wide uppercase transition-all",
-                  isCompleted
-                    ? "bg-green-900/20 text-green-500 border-green-900/50 hover:bg-green-900/30"
-                    : "bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
-                )}
-              >
-                {isVerifying ? (
-                  <>Verifying...</>
-                ) : isCompleted ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" /> Verified
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-2" /> Verify Code
-                  </>
-                )}
-              </Button>
+          {/* Step Progress Panel */}
+          {showStepProgress && (
+            <div className="mb-4">
+              <StepProgress
+                milestones={[
+                  {
+                    milestone_id: moduleIndex,
+                    title: currentModule.title,
+                    description: currentModule.context,
+                    micro_steps: [
+                      {
+                        step_id: moduleIndex,
+                        step_title: currentModule.title,
+                        step_objective: currentModule.challenge,
+                        isCompleted: isCompleted,
+                        isCurrent: true,
+                        verificationStatus: isCompleted ? "verified" : verificationResult?.status === "PASS" ? "verified" : verificationResult ? "failed" : "pending" as const,
+                        verificationFeedback: verificationResult?.feedback || '',
+                      }
+                    ],
+                    isCompleted: isCompleted,
+                    isCurrent: true,
+                    key_concepts: [],
+                  }
+                ]}
+                currentMilestoneId={moduleIndex}
+                currentMicroStepId={moduleIndex}
+                completedMicroSteps={isCompleted ? [moduleIndex] : []}
+                verificationResults={
+                  verificationResult
+                    ? new Map([[moduleIndex, {
+                        status: verificationResult.status === "PASS" ? "verified" : "failed",
+                        feedback: verificationResult.feedback,
+                      }]])
+                    : new Map()
+                }
+              />
             </div>
+          )}
+
+          {/* Code Editor with Monaco */}
+          <CodeEditor
+            code={userCode}
+            setCode={setUserCode}
+            language="typescript"
+            sessionId={roadmap.sessionId || ''}
+            milestoneId={moduleId}
+            height="400px"
+            showPreview={false}
+          />
+
+          {/* Verify Button */}
+          <div className="flex justify-end mt-2">
+            <Button
+              onClick={handleVerify}
+              disabled={isVerifying || isCompleted}
+              className={cn(
+                "font-mono font-bold tracking-wide uppercase transition-all",
+                isCompleted
+                  ? "bg-green-900/20 text-green-500 border-green-900/50 hover:bg-green-900/30"
+                  : "bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
+              )}
+            >
+              {isVerifying ? (
+                <>Verifying...</>
+              ) : isCompleted ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" /> Verified
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" /> Verify Code
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -526,6 +684,7 @@ export default function ModulePage({
           apiKeys={apiKeys}
           toggleCompletion={toggleCompletion}
           saveModuleProgress={saveModuleProgress}
+          progressState={progressState}
         />
       </div> 
 

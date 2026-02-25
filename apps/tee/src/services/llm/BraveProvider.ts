@@ -156,4 +156,40 @@ export class BraveProvider implements LLMProvider {
       throw error;
     }
   }
+
+  async generateJson(prompt: string): Promise<any> {
+    await this.consumeToken();
+
+    try {
+      logger.info({ provider: this.name }, 'Requesting JSON generation');
+
+      const response = await axios.post(
+        this.endpoint,
+        {
+          model: 'llama-3.1-8b-instruct',
+          messages: [
+            { role: 'system', content: 'You are a JSON API. Output valid JSON only. No markdown, no explanations.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.1,
+          max_tokens: 4000,
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+            'X-Subscription-Token': this.apiKey
+          },
+          timeout: 30000
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      return JSON.parse(content);
+    } catch (error) {
+      logger.error({ error: (error as Error).message, provider: this.name }, 'JSON generation failed');
+      throw error;
+    }
+  }
 }

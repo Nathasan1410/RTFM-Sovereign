@@ -60,3 +60,31 @@ packages/contracts/broadcast/
 # Environment (Security)
 .env*.local
 !.env.example
+
+# Documentation (Keep root docs clean)
+docs/archive/
+*.md
+!README.md
+!CONTRIBUTING.md
+!SECURITY.md
+!LICENSE
+!CHANGELOG.md
+!Roadmap.md
+!API.md
+!ARCHITECTURE.md
+!DEPLOYMENTS.md
+!TEE_SPEC.md
+!docs/README.md
+!docs/**/*.md
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Test artifacts
+test-*.json
+test-*.html
+test_*.html
+*.test.js
+*.test.jsx

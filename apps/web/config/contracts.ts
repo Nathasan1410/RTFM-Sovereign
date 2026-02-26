@@ -359,9 +359,9 @@ export const SKILL_STAKING_ABI = [
         "type": "address"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "",
-        "type": "bytes32"
+        "type": "string"
       }
     ],
     "name": "stakes",

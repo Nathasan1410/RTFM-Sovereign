@@ -13,6 +13,7 @@ import { ApiKeyWarningBanner } from "@/components/api-key-warning";
 import { DemoModeListener } from "@/components/DemoModeListener";
 import { DemoModeBadge } from "@/components/layout/DemoModeBadge";
 import { isDemoMode } from "@/lib/demoMode";
+import { Toaster } from "sonner";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -78,11 +79,15 @@ export default function RootLayout({
             <CommandPalette />
             <ShortcutsHelp />
             <DemoModeListener />
-            {isDemoMode() && <DemoModeBadge />}
             <Header />
-            <ApiKeyWarningBanner />
           <main className="flex-1 flex flex-col">
             {children}
+            <Toaster 
+              richColors 
+              position="top-right"
+              theme="dark"
+              duration={5000}
+            />
           </main>
         </Providers>
       </body>

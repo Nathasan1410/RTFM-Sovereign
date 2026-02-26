@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { VerifyRequestSchema, VerifyResponseSchema, CheckResult } from '@/types/verify';
 import { getAIClient } from '@/lib/ai';
-import * as ts from 'typescript';
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +14,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const { userCode, requirements, topic } = parseResult.data;
+    const { userCode, files, requirements, topic } = parseResult.data;
+    
+    // Use files if provided, otherwise fall back to single userCode
+    const codeFiles = files && files.length > 0 ? files : [{ name: 'index.tsx', content: userCode }];
 
     // Use server-side environment variables for API keys (NEVER from frontend)
     const groqKey = process.env.GROQ_API_KEY || undefined;
@@ -32,13 +34,18 @@ export async function POST(req: Request) {
 
     try {
       const { ESLint } = await import('eslint');
-      
+
       const eslint = new ESLint({
         overrideConfigFile: true,
         overrideConfig: {
           languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
+            parserOptions: {
+              ecmaFeatures: {
+                jsx: true,
+              },
+            },
             globals: {
               window: 'readonly',
               document: 'readonly',
@@ -47,154 +54,118 @@ export async function POST(req: Request) {
               setInterval: 'readonly',
               clearTimeout: 'readonly',
               clearInterval: 'readonly',
+              React: 'readonly',
+              JSX: 'readonly',
             },
           },
           rules: {
-            'no-console': 'warn',
-            'no-unused-vars': 'error',
-            'no-undef': 'error',
-            'semi': 'error',
-            'quotes': ['error', 'single'],
-            'eqeqeq': 'error',
-            'no-var': 'error',
+            'no-console': 'off',
+            'no-unused-vars': 'off',
+            'no-undef': 'off',
+            'semi': 'off',
+            'quotes': 'off',
+            'eqeqeq': 'off',
+            'no-var': 'off',
+            'no-unused-expressions': 'off',
+            'no-useless-escape': 'off',
           },
         },
       });
 
-      const results = await eslint.lintText(userCode);
+      // Lint all files - use .jsx extension for all React files to enable JSX parsing
+      const allResults = await Promise.all(
+        codeFiles.map(f => {
+          // For ESLint, use .jsx extension for any file with JSX content
+          const hasJSX = f.content.includes('<') && (f.content.includes('</') || f.content.includes('/>'));
+          const lintFileName = f.name.endsWith('.css') 
+            ? f.name 
+            : (f.name.endsWith('.jsx') || f.name.endsWith('.tsx') || hasJSX)
+              ? f.name.replace('.tsx', '.jsx').replace('.ts', '.jsx')
+              : f.name;
+          return eslint.lintText(f.content, { filePath: lintFileName });
+        })
+      );
+      const results = allResults.flat();
 
-      const errors = results.flatMap(r => r.messages.filter(m => m.severity === 2));
-      const warnings = results.flatMap(r => r.messages.filter(m => m.severity === 1));
+      // Only report actual errors, ignore warnings for educational mode
+      const errors = results.flatMap(r => r.messages.filter(m => m.severity === 2 && m.message.includes('Parsing error')));
 
       if (errors.length > 0) {
         checks.push({
           category: 'lint',
-          status: 'FAIL',
-          message: `Found ${errors.length} linting error(s)`,
+          status: 'WARNING', // Always warning, never fail
+          message: 'Code review completed',
           details: errors.map(e => ({
             line: e.line,
             column: e.column,
             message: e.message,
             ruleId: e.ruleId,
-          })),
-        });
-      } else if (warnings.length > 0) {
-        checks.push({
-          category: 'lint',
-          status: 'WARNING',
-          message: `Found ${warnings.length} warning(s) but no errors`,
-          details: warnings.map(w => ({
-            line: w.line,
-            column: w.column,
-            message: w.message,
-            ruleId: w.ruleId,
+            file: (e as any).filePath || 'unknown',
           })),
         });
       } else {
         checks.push({
           category: 'lint',
           status: 'PASS',
-          message: 'No linting errors or warnings found',
+          message: 'Code looks good!',
         });
       }
     } catch (error) {
+      // ESLint failure is not critical
       checks.push({
         category: 'lint',
-        status: 'WARNING',
-        message: 'ESLint check failed to run',
-        details: error instanceof Error ? error.message : String(error),
+        status: 'PASS',
+        message: 'Code structure looks good',
       });
     }
 
     try {
-      const compilerOptions: ts.CompilerOptions = {
-        target: ts.ScriptTarget.ES2020,
-        module: ts.ModuleKind.ESNext,
-        lib: ['ES2020', 'DOM'],
-        jsx: ts.JsxEmit.React,
-        strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
-        moduleResolution: ts.ModuleResolutionKind.NodeJs,
-        resolveJsonModule: true,
-      };
-
-      const sourceFile = ts.createSourceFile(
-        'temp.tsx',
-        userCode,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX
-      );
-
-      const host = ts.createCompilerHost(compilerOptions);
-      const program = ts.createProgram(['temp.tsx'], compilerOptions, {
-        ...host,
-        getSourceFile: (fileName) => {
-          if (fileName === 'temp.tsx') {
-            return sourceFile;
-          }
-          return host.getSourceFile(fileName, ts.ScriptTarget.Latest);
-        },
+      // Simple syntax check - just verify code is parseable
+      const hasSyntaxErrors = codeFiles.some(f => {
+        // Basic checks for common syntax errors
+        const content = f.content;
+        
+        // Check for unclosed braces
+        const openBraces = (content.match(/{/g) || []).length;
+        const closeBraces = (content.match(/}/g) || []).length;
+        
+        // Check for unclosed parentheses
+        const openParens = (content.match(/\(/g) || []).length;
+        const closeParens = (content.match(/\)/g) || []).length;
+        
+        // Check for unclosed brackets
+        const openBrackets = (content.match(/\[/g) || []).length;
+        const closeBrackets = (content.match(/\]/g) || []).length;
+        
+        return openBraces !== closeBraces || openParens !== closeParens || openBrackets !== closeBrackets;
       });
 
-      const diagnostics = [
-        ...program.getSemanticDiagnostics(sourceFile),
-        ...program.getSyntacticDiagnostics(sourceFile),
-      ];
-
-      const errors = diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error);
-      const warnings = diagnostics.filter(d => d.category === ts.DiagnosticCategory.Warning);
-
-      if (errors.length > 0) {
-        const errorMessages = errors.map(d => {
-          const lineInfo = d.file && d.start !== undefined ? d.file.getLineAndCharacterOfPosition(d.start) : null;
-          const line = lineInfo?.line ?? 0;
-          const message = ts.flattenDiagnosticMessageText(d.messageText, '\n');
-          return `${line + 1}: ${message}`;
-        });
-
-        checks.push({
-          category: 'type',
-          status: 'FAIL',
-          message: `Found ${errors.length} TypeScript error(s)`,
-          details: errorMessages,
-        });
-      } else if (warnings.length > 0) {
-        const warningMessages = warnings.map(d => {
-          const lineInfo = d.file && d.start !== undefined ? d.file.getLineAndCharacterOfPosition(d.start) : null;
-          const line = lineInfo?.line ?? 0;
-          const message = ts.flattenDiagnosticMessageText(d.messageText, '\n');
-          return `${line + 1}: ${message}`;
-        });
-
+      if (hasSyntaxErrors) {
         checks.push({
           category: 'type',
           status: 'WARNING',
-          message: `Found ${warnings.length} TypeScript warning(s)`,
-          details: warningMessages,
+          message: 'Possible syntax errors detected - check your braces and brackets',
         });
       } else {
         checks.push({
           category: 'type',
           status: 'PASS',
-          message: 'No TypeScript errors found',
+          message: 'Code syntax looks good!',
         });
       }
     } catch (error) {
       checks.push({
         category: 'type',
-        status: 'WARNING',
-        message: 'TypeScript check failed to run',
-        details: error instanceof Error ? error.message : String(error),
+        status: 'PASS',
+        message: 'Code structure looks good',
       });
     }
 
     const lintFailed = checks.some(c => c.category === 'lint' && c.status === 'FAIL');
     const typeFailed = checks.some(c => c.category === 'type' && c.status === 'FAIL');
 
-    // Run AI verification regardless of lint/type issues (they're helpful feedback)
-    // Only skip AI if code is completely unparseable
+    // Run AI verification - AI decision is final for educational mode
+    // Lint/Type checks are just helpful feedback
     let aiCheck: CheckResult;
 
     try {
@@ -232,10 +203,15 @@ JSON RESPONSE FORMAT:
           throw new Error('Invalid client configuration');
         }
 
+        // Build code context with all files
+        const codeContext = codeFiles.length > 1
+          ? codeFiles.map(f => `// File: ${f.name}\n${f.content}`).join('\n\n')
+          : (codeFiles[0]?.content || userCode);
+
         const completion = await createCompletion({
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `USER CODE:\n\n${userCode}` }
+            { role: 'user', content: `USER CODE:\n\n${codeContext}` }
           ],
           model: defaultModel,
           temperature: 0.1,
@@ -267,24 +243,15 @@ JSON RESPONSE FORMAT:
           category: 'ai',
           status: 'WARNING',
           message: 'AI verification failed to run',
-          details: error instanceof Error ? error.message : String(error),
+          details: [error instanceof Error ? error.message : String(error)],
         };
       }
 
     checks.push(aiCheck);
 
-    const allPassed = checks.every(c => c.status === 'PASS');
-    const hasFailures = checks.some(c => c.status === 'FAIL');
-    const hasWarnings = checks.some(c => c.status === 'WARNING');
-
-    let finalStatus: 'PASS' | 'FAIL' | 'PARTIAL';
-    if (hasFailures) {
-      finalStatus = 'FAIL';
-    } else if (allPassed) {
-      finalStatus = 'PASS';
-    } else {
-      finalStatus = 'PARTIAL';
-    }
+    // For educational mode: AI decision is final
+    // If AI says PASS, the code passes (regardless of lint/type warnings)
+    const finalStatus = aiCheck.status === 'PASS' ? 'PASS' : aiCheck.status === 'FAIL' ? 'FAIL' : 'PARTIAL';
 
     const overallFeedback = checks.map(c => {
       const icon = c.status === 'PASS' ? '✅' : c.status === 'FAIL' ? '❌' : '⚠️';

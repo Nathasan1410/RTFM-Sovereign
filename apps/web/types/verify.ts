@@ -4,13 +4,18 @@ export const CheckResultSchema = z.object({
   category: z.enum(['lint', 'type', 'ai']),
   status: z.enum(['PASS', 'FAIL', 'WARNING']),
   message: z.string(),
-  details: z.any().optional(),
+  details: z.array(z.any()).optional(),
 });
 
 export type CheckResult = z.infer<typeof CheckResultSchema>;
 
 export const VerifyRequestSchema = z.object({
-  userCode: z.string().max(10000),
+  userCode: z.string().max(50000),
+  files: z.array(z.object({
+    name: z.string(),
+    content: z.string(),
+    language: z.string().optional(),
+  })).optional(),
   requirements: z.array(z.string()),
   topic: z.string().optional(),
 });

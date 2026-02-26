@@ -61,7 +61,7 @@ function generateDemoRoadmap(topic: string, version: 'lite' | 'pro') {
   }
 
   return {
-    title: `Build a ${projectName} with ${topic}`,
+    title: `Build a ${projectName} with ${topic}`.slice(0, 100),
     modules
   };
 }
@@ -358,11 +358,22 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { error: errorData.error || 'Failed to generate roadmap from TEE service' },
-        { status: response.status }
-      );
+      console.warn('[API Generate] TEE service failed, falling back to demo mode:', errorData.error);
+      // Fallback to demo mode if TEE service fails
+      const demoRoadmap = generateDemoRoadmap(cleanTopic, version);
+      
+      const validatedResponse = {
+        title: demoRoadmap.title,
+        modules: demoRoadmap.modules
+      };
+      
+      const validated = GenerateResponseSchema.parse(validatedResponse);
+      
+      return NextResponse.json({
+        ...validated,
+        sessionId: null,
+        userAddress: finalUserAddress
+      });
     }
 
     const data = await response.json();

@@ -5,7 +5,7 @@ import { X, Flame, BookOpen, Shield, Loader2, CheckCircle, AlertCircle, External
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { SKILL_STAKING_ABI, SKILL_STAKING_ADDRESS } from "@/config/contracts";
 import { Button } from "@/components/ui/button";
-import { parseEther, formatEther, keccak256, toBytes } from "viem";
+import { parseEther, formatEther } from "viem";
 import {
   Dialog,
   DialogContent,
@@ -26,9 +26,6 @@ export function StakingModal({ isOpen, onClose, onLearnMode, onProofMode, topic 
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
   
-  // Convert topic string to bytes32 for contract calls
-  const topicHash = keccak256(toBytes(topic));
-  
   const [isStaking, setIsStaking] = useState(false);
   const [stakeTxHash, setStakeTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [stakingError, setStakingError] = useState<string | null>(null);
@@ -39,14 +36,14 @@ export function StakingModal({ isOpen, onClose, onLearnMode, onProofMode, topic 
     address: SKILL_STAKING_ADDRESS,
     abi: SKILL_STAKING_ABI,
     functionName: 'stakes',
-    args: [address as `0x${string}`, topicHash],
+    args: [address as `0x${string}`, topic as string],
     query: {
       enabled: !!address && !!topic && isOpen && selectedMode === 'proof',
     }
   });
 
-  const isAlreadyStaked = existingStake && (existingStake as any)?.amount > BigInt(0);
-  const stakedAmount = existingStake ? formatEther((existingStake as any).amount) : '0';
+  const isAlreadyStaked = existingStake && (existingStake as any)?.[0] > BigInt(0);
+  const stakedAmount = existingStake && (existingStake as any)?.[0] ? formatEther((existingStake as any)[0]) : '0';
 
   // Wait for transaction confirmation
   useWaitForTransactionReceipt({

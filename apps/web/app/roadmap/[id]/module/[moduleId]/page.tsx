@@ -171,10 +171,18 @@ function ModuleWorkspace({
           ? currentModule.verificationCriteria
           : extractCriteriaFromChallenge(currentModule.challenge);
 
-        // Call verification API - private key is handled server-side (NEVER exposed to frontend)
+        const verifyHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        // EigenAI is primary - use TEE private key for wallet auth
+        if (process.env.EIGENAI_PRIVATE_KEY) {
+          verifyHeaders["x-eigenai-private-key"] = process.env.EIGENAI_PRIVATE_KEY;
+        }
+        // Fallback headers
+        if (apiKeys.groq) verifyHeaders["x-api-key-groq"] = apiKeys.groq;
+        if (apiKeys.cerebras) verifyHeaders["x-api-key-cerebras"] = apiKeys.cerebras;
+
         const response = await fetch("/api/verify", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: verifyHeaders,
           body: JSON.stringify({
             userCode,
             requirements: criteria,
@@ -210,10 +218,14 @@ function ModuleWorkspace({
     setIsChatLoading(true);
 
     try {
-      // API keys are handled server-side - NEVER expose private keys to frontend
+      const chatHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKeys.groq) chatHeaders["x-api-key-groq"] = apiKeys.groq;
+      if (apiKeys.cerebras) chatHeaders["x-api-key-cerebras"] = apiKeys.cerebras;
+      if (apiKeys.brave) chatHeaders["x-api-key-brave"] = apiKeys.brave;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: chatHeaders,
         body: JSON.stringify({
           message: userMsg,
           context: {

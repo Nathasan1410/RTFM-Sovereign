@@ -3,7 +3,10 @@
     "allow": [
       "Bash(powershell:*)",
       "Bash(npm test:*)",
-      "Bash(npm run typecheck:*)"
+      "Bash(npm run typecheck:*)",
+      "WebSearch",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

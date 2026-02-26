@@ -245,7 +245,11 @@ export default function StepProgress({
                       {/* Verification Feedback */}
                       {verificationResult?.feedback && verificationResult.status === "failed" && (
                         <div className="mt-2 p-2 bg-red-950/20 border border-red-900/20 rounded-sm">
-                          <p className="text-xs text-red-300">{verificationResult.feedback}</p>
+                          <p className="text-xs text-red-300">
+                            {typeof verificationResult.feedback === 'string' 
+                              ? verificationResult.feedback 
+                              : JSON.stringify(verificationResult.feedback)}
+                          </p>
                         </div>
                       )}
                     </div>

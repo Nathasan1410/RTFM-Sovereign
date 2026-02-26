@@ -2,10 +2,11 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash2, Calendar, LayoutGrid, Shield, Flame, ExternalLink, CheckCircle } from "lucide-react";
+import { ArrowLeft, Trash2, Calendar, LayoutGrid, Shield, Flame, ExternalLink, CheckCircle, AlertTriangle, Share2 } from "lucide-react";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { SKILL_STAKING_ABI, SKILL_STAKING_ADDRESS } from "@/config/contracts";
-import { formatEther, keccak256, toBytes } from "viem";
+import { formatEther } from "viem";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressDashboard } from "@/components/progress-dashboard";
 import { ModuleCard } from "@/components/module-card";
@@ -59,6 +60,33 @@ export default function RoadmapPage({
     router.push("/");
   };
 
+  const handleShareCredential = () => {
+    // Generate shareable URL
+    const userAddress = address || roadmap.userAddress;
+    
+    if (!userAddress) {
+      toast.error("No wallet address found", {
+        description: "Please connect your wallet to share credentials",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    const shareUrl = `${window.location.origin}/verify/${userAddress}?skill=${encodeURIComponent(roadmap.topic)}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast.success("Credential link copied!", {
+        description: "Share this with employers to prove your skills!",
+        duration: 5000,
+      });
+    }).catch(() => {
+      toast.error("Failed to copy link", {
+        description: shareUrl,
+      });
+    });
+  };
+
   return (
     <div className="container max-w-5xl mx-auto py-8 px-6 pb-20">
       {/* 1. Page Header */}
@@ -104,6 +132,18 @@ export default function RoadmapPage({
           </div>
 
           <div className="flex items-center gap-2">
+            {completedModules === totalModules && (
+              <Button
+                onClick={handleShareCredential}
+                variant="outline"
+                size="sm"
+                className="border-green-900/50 text-green-400 hover:bg-green-950/20 hover:text-green-300"
+                title="Share Credential with HR"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            )}
             <Button
               variant="outline"
               size="icon"
@@ -197,15 +237,12 @@ function StakingStatusSection({
   const [claimTxHash, setClaimTxHash] = useState<`0x${string}` | undefined>();
   const [claimError, setClaimError] = useState<string | null>(null);
 
-  // Convert topic string to bytes32 for contract calls
-  const topicHash = keccak256(toBytes(roadmap.topic));
-
   // Fetch stake data
   const { data: stakeData, refetch: refetchStake } = useReadContract({
     address: SKILL_STAKING_ADDRESS,
     abi: SKILL_STAKING_ABI,
     functionName: 'stakes',
-    args: [address, topicHash],
+    args: [address, roadmap.topic],
     query: {
       enabled: !!address && !!roadmap.topic,
     },
@@ -214,12 +251,57 @@ function StakingStatusSection({
   const isAllModulesComplete = completedModules >= totalModules;
   const hasRefunded = stakeData && (stakeData as any)?.refunded;
 
+  const handleGiveUp = () => {
+    // Show confirmation dialog with error styling
+    const confirmed = window.confirm(
+      `⚠️ GIVE UP AND CLAIM REFUND?\n\n` +
+      `You've completed ${completedModules}/${totalModules} modules.\n\n` +
+      `Refund amount: 0.0002 ETH (20% of your 0.001 ETH stake)\n\n` +
+      `This action is IRREVERSIBLE. Your learning progress will be marked as incomplete.\n\n` +
+      `Are you sure you want to continue?`
+    );
+
+    if (confirmed) {
+      // Set claiming state immediately to hide button
+      setIsClaiming(true);
+      // User confirmed, claim 20% refund (score = 0)
+      handleClaimRefund(false);
+    }
+  };
+
+  const handleShareCredential = () => {
+    // Generate shareable URL
+    const userAddress = address || roadmap.userAddress;
+    
+    if (!userAddress) {
+      toast.error("No wallet address found", {
+        description: "Please connect your wallet to share credentials",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    const shareUrl = `${window.location.origin}/verify/${userAddress}?skill=${encodeURIComponent(roadmap.topic)}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast.success("Credential link copied!", {
+        description: "Share this with employers to prove your skills!",
+        duration: 5000,
+      });
+    }).catch(() => {
+      toast.error("Failed to copy link", {
+        description: shareUrl,
+      });
+    });
+  };
+
   const handleClaimRefund = async (passed: boolean) => {
     setIsClaiming(true);
     setClaimError(null);
 
     try {
-      const finalScore = passed ? 100 : 50;
+      const finalScore = passed ? 100 : 0;  // Changed from 50 to 0 for fail
       
       const hash = await writeContractAsync({
         address: SKILL_STAKING_ADDRESS,
@@ -230,18 +312,30 @@ function StakingStatusSection({
 
       setClaimTxHash(hash);
 
+      // Show pending toast
+      toast.info("Claiming refund...", {
+        description: "Waiting for transaction confirmation",
+      });
+
       // Wait for confirmation
       const receipt = await waitForTransactionReceipt(hash);
-      
+
       if (receipt.status === 'success') {
         await refetchStake();
-        alert(`✅ Refund claimed! ${passed ? '80%' : '20%'} of stake returned.`);
+        toast.success("Refund claimed!", {
+          description: `${passed ? '80%' : '20%'} of your stake has been returned.`,
+          duration: 10000,
+        });
       } else {
         throw new Error('Transaction failed');
       }
     } catch (error: any) {
       console.error('Claim failed:', error);
       setClaimError(error.message || 'Failed to claim refund');
+      toast.error("Failed to claim refund", {
+        description: error.message || 'Please try again',
+        duration: 10000,
+      });
     } finally {
       setIsClaiming(false);
     }
@@ -267,7 +361,7 @@ function StakingStatusSection({
     throw new Error('Transaction confirmation timeout');
   };
 
-  const stakeAmount = stakeData ? formatEther((stakeData as any).amount) : '0';
+  const stakeAmount = stakeData && (stakeData as any)?.[0] ? formatEther((stakeData as any)[0]) : '0';
 
   return (
     <div className="mt-6 p-4 border border-orange-500/30 bg-orange-500/10 rounded-sm">
@@ -278,15 +372,28 @@ function StakingStatusSection({
             Staked: {stakeAmount} ETH
           </span>
         </div>
-        <a
-          href={`https://sepolia.etherscan.io/address/${SKILL_STAKING_ADDRESS}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-zinc-400 hover:text-zinc-300 flex items-center gap-1"
-        >
-          <ExternalLink className="w-3 h-3" />
-          View on Etherscan
-        </a>
+        <div className="flex items-center gap-2">
+          {isAllModulesComplete && (
+            <Button
+              onClick={handleShareCredential}
+              size="sm"
+              variant="outline"
+              className="border-green-500/30 text-green-400 hover:bg-green-500/10 h-7 text-xs"
+            >
+              <Share2 className="w-3 h-3 mr-1" />
+              Share
+            </Button>
+          )}
+          <a
+            href={`https://sepolia.etherscan.io/address/${SKILL_STAKING_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-400 hover:text-zinc-300 flex items-center gap-1"
+          >
+            <ExternalLink className="w-3 h-3" />
+            View on Etherscan
+          </a>
+        </div>
       </div>
 
       {/* Progress */}
@@ -294,11 +401,64 @@ function StakingStatusSection({
         Milestones: {completedModules}/{totalModules}
       </div>
 
+      {/* Give Up Button - Show when user has partial completion (not 0%, not 100%, hasn't claimed) */}
+      {completedModules > 0 && completedModules < totalModules && !hasRefunded && !isClaiming && (
+        <div className="space-y-2">
+          <div className="p-3 border border-orange-500/30 bg-orange-500/10 rounded-sm">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />
+              <div className="text-sm text-orange-400">
+                Want to give up?
+              </div>
+            </div>
+            <p className="text-xs text-zinc-400 mb-2">
+              You've completed {completedModules}/{totalModules} modules. 
+              You can claim 20% refund (0.0002 ETH) if you give up now.
+            </p>
+            <Button
+              onClick={handleGiveUp}
+              disabled={isClaiming}
+              size="sm"
+              variant="outline"
+              className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+            >
+              {isClaiming ? (
+                <span>Processing...</span>
+              ) : (
+                <span>⚠️ Give Up - Claim 20% Refund</span>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Claim Buttons - Show when all modules complete */}
       {isAllModulesComplete && !hasRefunded && (
         <div className="space-y-2">
+          <div className="p-3 border border-green-500/30 bg-green-500/10 rounded-sm mb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <div className="text-sm text-green-400 font-semibold">
+                  🎉 Congratulations! You completed all modules!
+                </div>
+              </div>
+              <Button
+                onClick={handleShareCredential}
+                size="sm"
+                variant="outline"
+                className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+              >
+                📤 Share Credential
+              </Button>
+            </div>
+            <p className="text-xs text-zinc-400 mt-2 ml-7">
+              Share your achievement with employers! Link shows your completed roadmap + on-chain proof.
+            </p>
+          </div>
+          
           <div className="text-xs text-zinc-500">
-            All modules complete! Choose your outcome:
+            Choose your outcome to claim refund:
           </div>
           <div className="flex gap-2">
             <Button

@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
       <div className="flex h-14 w-full items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold font-mono text-green-500">RTFM</span>
-          <span className="text-xs text-muted-foreground font-mono">v1.0</span>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
+            <span className="text-lg font-bold font-mono text-green-500">RTFM</span>
+            <span className="text-xs text-muted-foreground font-mono">v1.0</span>
+          </Link>
         </div>
 
         <ConnectButton.Custom>

@@ -402,18 +402,18 @@ export class ProjectManagerAgent {
       const allCode = session.project.accumulated_code.map(f => f.content).join('\n');
       const codeHash = ethers.keccak256(ethers.toUtf8Bytes(allCode));
 
-      // Convert to bytes32 format
-      const ipfsHashBytes = ethers.hexlify(ethers.toUtf8Bytes(ipfsHash));
-      const sessionIdBytes = ethers.hexlify(ethers.toUtf8Bytes(sessionId));
+      // Convert to bytes32 format using keccak256 hash (required by contract)
+      const ipfsHashBytes32 = ethers.keccak256(ethers.toUtf8Bytes(ipfsHash));
+      const sessionIdBytes32 = ethers.keccak256(ethers.toUtf8Bytes(sessionId));
 
       // Generate TEE signature
       const timestamp = Math.floor(Date.now() / 1000);
       const signature = await this.teeSigner.signCheckpoint({
         user: session.user_address,
-        sessionId: sessionIdBytes,
+        sessionId: sessionIdBytes32,
         milestoneId,
         timestamp,
-        ipfsHash: ipfsHashBytes,
+        ipfsHash: ipfsHashBytes32,
         codeHash
       });
 
@@ -427,10 +427,10 @@ export class ProjectManagerAgent {
       // Submit to blockchain
       const tx = await this.attestationContract.recordCheckpoint(
         session.user_address,
-        sessionIdBytes,
+        sessionIdBytes32,
         milestoneId,
         timestamp,
-        ipfsHashBytes,
+        ipfsHashBytes32,
         codeHash,
         signature
       );

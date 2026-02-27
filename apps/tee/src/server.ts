@@ -18,7 +18,8 @@
  * - TEEIdentity: Cryptographic identity management
  * - ArchitectAgent: Golden path generation
  * - SpecialistAgent: Code analysis and feedback
- * - LLMService: AI inference (Cerebras, Groq, Brave, Hyperbolic)
+ * - LLMService: AI inference (EigenAI primary, Groq fallback)
+ * - SerperService: Web search for documentation lookup (replaces Brave)
  * - JudgingEngine: Multi-layer code analysis and grading
  * - ContractIntegration: Smart contract interaction
  * - IPFSService: Decentralized storage
@@ -62,7 +63,8 @@ const llmService = new LLMService(
   process.env.BRAVE_API_KEY || '',
   process.env.HYPERBOLIC_API_KEY || '',
   process.env.EIGENAI_API_KEY || '',
-  process.env.WALLET_PRIVATE_KEY || ''
+  process.env.WALLET_PRIVATE_KEY || '',
+  process.env.SERPER_API_KEY || ''
 );
 const architectAgent = new ArchitectAgent(llmService);
 const specialistAgent = new SpecialistAgent();
@@ -1207,15 +1209,6 @@ app.post('/checkpoint/onchain/record', async (req, res) => {
       return res.status(400).json({ error: 'Invalid milestone ID. Must be 3, 5, or 7' });
     }
 
-    // Calculate code hash
-    let codeHash: string;
-    if (codeFiles && Array.isArray(codeFiles)) {
-      const allCode = codeFiles.map((f: any) => f.content).join('\n');
-      codeHash = ethers.keccak256(ethers.toUtf8Bytes(allCode));
-    } else {
-      return res.status(400).json({ error: 'Missing codeFiles' });
-    }
-
     // Get session to retrieve IPFS hash
     const session = projectManagerAgent.getSessionState(sessionId);
     if (!session) {
@@ -1230,18 +1223,29 @@ app.post('/checkpoint/onchain/record', async (req, res) => {
       return res.status(404).json({ error: 'Checkpoint not found or no IPFS hash available' });
     }
 
-    // Convert IPFS hash to bytes32
-    const ipfsHashBytes = ethers.hexlify(ethers.toUtf8Bytes(checkpoint.ipfs_hash));
-    const sessionIdBytes = ethers.hexlify(ethers.toUtf8Bytes(sessionId));
+    // Calculate code hash from submission or stored data
+    let codeHash: string;
+    if (codeFiles && Array.isArray(codeFiles)) {
+      const allCode = codeFiles.map((f: any) => f.content).join('\n');
+      codeHash = ethers.keccak256(ethers.toUtf8Bytes(allCode));
+    } else if (checkpoint.submission_hash) {
+      codeHash = checkpoint.submission_hash;
+    } else {
+      return res.status(400).json({ error: 'Missing codeFiles and no stored code hash' });
+    }
+
+    // Convert to bytes32 format using keccak256 hash (required by contract)
+    const ipfsHashBytes32 = ethers.keccak256(ethers.toUtf8Bytes(checkpoint.ipfs_hash));
+    const sessionIdBytes32 = ethers.keccak256(ethers.toUtf8Bytes(sessionId));
 
     // Generate TEE signature
     const timestamp = Math.floor(Date.now() / 1000);
     const signature = await teeSigner.signCheckpoint({
       user: userAddress,
-      sessionId: sessionIdBytes,
+      sessionId: sessionIdBytes32,
       milestoneId: milestoneNum,
       timestamp,
-      ipfsHash: ipfsHashBytes,
+      ipfsHash: ipfsHashBytes32,
       codeHash
     });
 
@@ -1255,10 +1259,10 @@ app.post('/checkpoint/onchain/record', async (req, res) => {
     // Submit to blockchain
     const tx = await attestationContract.recordCheckpoint(
       userAddress,
-      sessionIdBytes,
+      sessionIdBytes32,
       milestoneNum,
       timestamp,
-      ipfsHashBytes,
+      ipfsHashBytes32,
       codeHash,
       signature
     );

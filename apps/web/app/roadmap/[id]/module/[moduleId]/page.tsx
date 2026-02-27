@@ -51,7 +51,7 @@ function extractCriteriaFromChallenge(challenge: string): string[] {
   return criteria;
 }
 
-type ModuleWorkspaceProps = {
+export type ModuleWorkspaceProps = {
   roadmapId: string;
   moduleId: string;
   roadmap: Roadmap;
@@ -64,7 +64,7 @@ type ModuleWorkspaceProps = {
   progressState: Record<string, { isCompleted?: boolean; userCode?: string | undefined } | undefined>;
 };
 
-function ModuleWorkspace({
+export function ModuleWorkspace({
   roadmapId,
   moduleId,
   roadmap,

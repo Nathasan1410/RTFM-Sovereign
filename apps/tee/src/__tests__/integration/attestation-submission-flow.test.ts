@@ -118,7 +118,8 @@ describe('Attestation Submission Integration', () => {
   let app: any;
 
   beforeAll(async () => {
-    // Set up environment variables BEFORE importing server
+    // Set up test environment BEFORE importing server
+    process.env.NODE_ENV = 'test';
     process.env.TEE_PRIVATE_KEY = '0x' + '1'.repeat(64);
     process.env.CONTRACT_ATTESTATION = '0x621218a5C6Ef20505AB37D8b934AE83F18CD778d';
     process.env.CONTRACT_STAKING = '0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790';

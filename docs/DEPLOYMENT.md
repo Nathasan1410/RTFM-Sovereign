@@ -1,585 +1,224 @@
-# Deployment Documentation
+# RTFM-Sovereign Deployment Log
 
-## Overview
+## Network: Sepolia Testnet (Chain ID: 11155111)
+## Date: TBD
+## Deployer: 0x4DF66E441dEC0FcbFCd1464618f8D44eb2cAb0ad
 
-This document provides deployment details for the RTFM-Sovereign platform, including smart contract deployment, TEE service deployment, frontend deployment, and verification steps for judges.
+> **NOTE**: Deployment pending wallet funding. Current balance: 0 ETH
 
----
+### Contract Addresses
 
-## Deployment Manifest
+| Contract | Address | Status | Etherscan |
+|----------|---------|--------|-----------|
+| RTFMVerifiableRegistry | TBD | ⏳ Pending | [Link](...) |
+| RTFMFaucet | TBD | ⏳ Pending | [Link](...) |
 
-### Contract Deployment
+### Constructor Arguments
 
-| Component | Network | Address | Transaction Hash | Block Number |
-|-----------|---------|---------|------------------|--------------|
-| **RTFMVerifiableRegistry** | Sepolia (11155111) | `0x7006e886e56426Fbb942B479AC8eF5C47a7531f1` | `0x59f58379b24e2881280a7b8cab618102631d55549da742eaa378fe549ef68ace` | 10311757 |
-| **RTFMFaucet** | Sepolia (11155111) | `0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790` | `0xc596ba783a1bd9226921c333a1754c9f8af04ec819a690c63368aee83e7c3ea3` | 10311757 |
+#### RTFMVerifiableRegistry
+- **deployer**: Set automatically to msg.sender (deployer address)
+- **domainName**: "RTFMVerifiableRegistry"
+- **domainVersion**: "1"
 
-### Deployment Details
+#### RTFMFaucet
+- **DRIP_AMOUNT**: 0.01 ether
+- **COOLDOWN_PERIOD**: 1 hours
 
-- **Deployer**: `0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48`
-- **Contract Version**: 1.0.0
-- **Solidity Version**: 0.8.24
-- **Deployment Date**: 2026-02-22
+### Setup Transactions
 
----
+> **Pending deployment - awaiting wallet funding**
 
-## Smart Contract Deployment
+1. Enroll TEE: TBD (Tx Hash: TBD)
+2. Activate TEE: TBD (Tx Hash: TBD)
+3. Renounce Ownership: TBD (Tx Hash: TBD)
 
-### Prerequisites
+### Current State
 
-- Node.js 18+
-- Foundry (forge, cast, anvil)
-- Sepolia ETH for deployment fees
+- **Owner**: Deployer (will be burned after TEE activation)
+- **TEE**: TBD (will be set during enrollment)
+- **Treasury Balance**: 0 ETH
+- **Total Stakes**: 0
 
-### Deployment Steps
+### Deployment Checklist
 
-#### 1. Clone Repository
+- [ ] Wallet funded (≥ 0.3 ETH)
+- [ ] RTFMVerifiableRegistry deployed
+- [ ] RTFMFaucet deployed
+- [ ] TEE enrolled and activated
+- [ ] Ownership renounced (deployer → 0x0)
+- [ ] Contracts verified on Etherscan
+- [ ] Faucet funded (≥ 0.05 ETH)
+- [ ] ABIs exported to frontend
+- [ ] Environment variables updated
+- [ ] Smoke tests completed
 
-```bash
-git clone https://github.com/your-org/RTFM-Sovereign.git
-cd RTFM-Sovereign
-```
-
-#### 2. Install Dependencies
-
-```bash
-cd packages/contracts
-npm install
-```
-
-#### 3. Configure Environment
-
-Create `.env` file:
-
-```env
-PRIVATE_KEY=your_private_key
-RPC_URL=https://sepolia.infura.io/v3/your_project_id
-```
-
-#### 4. Compile Contracts
+### Pre-Deployment Commands
 
 ```bash
-forge build
-```
+# 1. Check wallet balance
+node scripts/check-balance.js
 
-#### 5. Deploy Registry Contract
-
-```bash
-forge script script/DeployRegistry.s.sol \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
+# 2. Deploy Registry
+forge script script/Deploy.s.sol \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_KEY \
   --broadcast \
   --verify \
-  -vvvv
-```
+  --etherscan-api-key $ETHERSCAN_API_KEY
 
-#### 6. Deploy Faucet Contract
-
-```bash
-forge script script/DeployFaucet.s.sol \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
+# 3. Deploy Faucet
+forge create RTFMFaucet \
+  --constructor-args "" \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_KEY \
   --broadcast \
-  --verify \
-  -vvvv
+  --verify
+
+# 4. Fund Faucet
+cast send 0.05ether \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_KEY \
+  $FAUCET_ADDRESS
 ```
 
-#### 7. Verify on Etherscan
+### Post-Deployment Commands
 
 ```bash
-forge verify-contract \
-  0x7006e886e56426Fbb942B479AC8eF5C47a7531f1 \
-  src/RTFMVerifiableRegistry.sol:RTFMVerifiableRegistry \
-  --chain-id 11155111 \
-  --watch
+# 1. Enroll TEE
+cast send $TEE_PUBLIC_KEY \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_KEY \
+  $REGISTRY_ADDRESS \
+  --data "0x..."  # enrollTEE(address,bytes) calldata
+
+# 2. Activate TEE (from TEE wallet)
+cast send "" \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $TEE_PRIVATE_KEY \
+  $REGISTRY_ADDRESS \
+  --data "0x..."  # activateTEE() calldata
+
+# 3. Verify TEE is active
+cast call $REGISTRY_ADDRESS \
+  "TEE_PUBLIC_KEY()" \
+  --rpc-url $SEPOLIA_RPC_URL
+
+# 4. Renounce Ownership (from deployer)
+cast send "" \
+  --rpc-url $SEPOLIA_RPC_URL \
+  --private-key $DEPLOYER_KEY \
+  $REGISTRY_ADDRESS \
+  --data "0x..."  # renounceOwnership() calldata
 ```
 
----
-
-## TEE Service Deployment
-
-### Prerequisites
-
-- Docker 20+
-- EigenCompute account (for production KMS)
-- Cerebras API key
-- Sepolia ETH for gas fees
-
-### Deployment Steps
-
-#### 1. Build Docker Image
+### Verification Commands
 
 ```bash
-cd apps/tee
-docker build -t rtfm-tee-service:latest .
+# Check contract is verified
+curl -X GET "https://api-sepolia.etherscan.io/api?module=contract&action=getabi&address=$REGISTRY_ADDRESS"
+
+# Verify TEE enrollment
+cast call $REGISTRY_ADDRESS \
+  "TEE_PUBLIC_KEY()" \
+  --rpc-url $SEPOLIA_RPC_URL
+
+# Verify ownership burned
+cast call $REGISTRY_ADDRESS \
+  "owner()" \
+  --rpc-url $SEPOLIA_RPC_URL
+# Should return: 0x0000000000000000000000000000000000000000000000
 ```
 
-#### 2. Configure Environment Variables
+### Environment Variables for Frontend
 
-Create `.env.production`:
-
-```env
-PORT=3000
-CONTRACT_ADDRESS=0x7006e886e56426Fbb942B479AC8eF5C47a7531f1
-RPC_URL=https://sepolia.infura.io/v3/your_project_id
-CEREBRAS_API_KEY=your_cerebras_api_key
-MNEMONIC=your_mnemonic # Optional: use EigenCompute KMS in production
-CHAIN_ID=11155111
-LOG_LEVEL=info
-```
-
-#### 3. Deploy to EigenCompute
+Update `apps/web/.env.local` after deployment:
 
 ```bash
-# Using EigenCompute CLI
-eigencompute deploy \
-  --image rtfm-tee-service:latest \
-  --env-file .env.production \
-  --region us-west-2 \
-  --instance-type sgx.large
-```
-
-#### 4. Enroll TEE in Contract
-
-After deployment, enroll the TEE's public key:
-
-```typescript
-// Generate TEE identity
-const teeIdentity = new TEEIdentity();
-const publicKey = teeIdentity.getPublicKey();
-const address = teeIdentity.getAddress();
-const proofOfPossession = teeIdentity.generateProofOfPossession();
-
-// Call enrollTEE on contract
-const tx = await contract.enrollTEE(address, proofOfPossession);
-await tx.wait();
-```
-
-#### 5. Activate TEE
-
-```typescript
-// Activate TEE (renounces deployer rights)
-const tx = await contract.activateTEE();
-await tx.wait();
-```
-
-### Docker Compose (Local Development)
-
-```yaml
-version: '3.8'
-services:
-  tee-service:
-    build: ./apps/tee
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - CONTRACT_ADDRESS=0x7006e886e56426Fbb942B479AC8eF5C47a7531f1
-      - RPC_URL=https://sepolia.infura.io/v3/your_project_id
-      - CEREBRAS_API_KEY=your_cerebras_api_key
-      - CHAIN_ID=11155111
-      - LOG_LEVEL=debug
-    restart: unless-stopped
-```
-
----
-
-## Frontend Deployment
-
-### Prerequisites
-
-- Node.js 18+
-- Vercel or Netlify account (for deployment)
-
-### Deployment Steps
-
-#### 1. Install Dependencies
-
-```bash
-cd apps/web
-npm install
-```
-
-#### 2. Configure Environment
-
-Create `.env.production`:
-
-```env
+# Contract Addresses
+NEXT_PUBLIC_REGISTRY_CONTRACT=0x...  # Update after deployment
+NEXT_PUBLIC_FAUCET_CONTRACT=0x...     # Update after deployment
 NEXT_PUBLIC_CHAIN_ID=11155111
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x7006e886e56426Fbb942B479AC8eF5C47a7531f1
-NEXT_PUBLIC_TEE_URL=https://your-tee-service.com
-NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/your_project_id
+
+# TEE Endpoint
+NEXT_PUBLIC_TEE_URL=https://tee-instance.eigencloud.xyz
+
+# RPC URLs
+NEXT_PUBLIC_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
-#### 3. Build Application
+### ABI Export
+
+Export ABIs to frontend:
 
 ```bash
-npm run build
+# Copy Registry ABI
+cp out/RTFMVerifiableRegistry.sol/RTFMVerifiableRegistry.json \
+   apps/web/src/contracts/
+
+# Copy Faucet ABI
+cp out/RTFMFaucet.sol/RTFMFaucet.json \
+   apps/web/src/contracts/
 ```
 
-#### 4. Deploy to Vercel
+### Troubleshooting
 
-```bash
-vercel --prod
-```
+#### Deployment Fails
 
-#### 5. Configure Domain (Optional)
+**Error**: "Intrinsic gas too low"
+- **Fix**: Increase gas limit in Foundry config
 
-- Add custom domain in Vercel dashboard
-- Update DNS records as instructed by Vercel
+**Error**: "Transaction underpriced"
+- **Fix**: Wait for gas prices to drop, or increase gas price
+
+**Error**: "Nonce too low"
+- **Fix**: Deploy from fresh account or reset nonce in RPC
+
+#### Verification Fails
+
+**Error**: "Contract verification failed"
+- **Fix**:
+  1. Check Etherscan API key is correct
+  2. Verify source code is flattened correctly
+  3. Retry with `--verify` flag again
+
+#### TEE Enrollment Fails
+
+**Error**: "Unauthorized" when calling activateTEE
+- **Fix**: Ensure you're calling from the enrolled TEE address, not deployer address
 
 ---
 
-## Verification Steps for Judges
+## Deployment Notes
 
-### 1. Verify Contract Deployment
+### Gas Costs (Estimated)
 
-#### Step 1.1: Verify Contract Existence
+| Operation | Gas Used | Cost (Sepolia @ 10 gwei) |
+|-----------|----------|-------------------------------|
+| Deploy Registry | ~2.5M | ~0.025 ETH |
+| Deploy Faucet | ~1.5M | ~0.015 ETH |
+| Enroll TEE | ~50k | ~0.0005 ETH |
+| Activate TEE | ~30k | ~0.0003 ETH |
+| Stake | ~65k | ~0.00065 ETH |
+| Submit Attestation | ~120k | ~0.0012 ETH |
 
-```bash
-# Using cast (Foundry)
-cast code 0x7006e886e56426Fbb942B479AC8eF5C47a7531f1 \
-  --rpc-url https://sepolia.infura.io/v3/your_project_id
-```
+**Total Estimated Deployment Cost**: ~0.042 ETH
 
-Expected output: Non-empty bytecode (0x-prefixed hex string)
+### Timeline
 
-#### Step 1.2: Verify on Etherscan
-
-Visit: https://sepolia.etherscan.io/address/0x7006e886e56426Fbb942B479AC8eF5C47a7531f1
-
-Verify:
-- Contract is verified
-- Source code matches repository
-- Constructor parameters match deployment
-
-#### Step 1.3: Verify TEE Enrollment
-
-```bash
-# Check TEE public key
-cast call 0x7006e886e56426Fbb942B479AC8eF5C47a7531f1 \
-  "TEE_PUBLIC_KEY()(address)" \
-  --rpc-url https://sepolia.infura.io/v3/your_project_id
-```
-
-Expected output: Non-zero address
+- **Chunk 5 Deployment**: Day 3 of hackathon
+- **TEE Integration**: Days 4-5 (Chunks 6-7)
+- **Frontend Integration**: Days 5-6 (Chunks 13-16)
+- **Final Testing**: Day 6 (Chunk 19)
 
 ---
 
-### 2. Verify TEE Service
+## Links
 
-#### Step 2.1: Check TEE Identity
-
-```bash
-curl https://your-tee-service.com/identity
-```
-
-Expected response:
-
-```json
-{
-  "publicKey": "0x04a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890ab",
-  "address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-  "contract": "0x7006e886e56426Fbb942B479AC8eF5C47a7531f1",
-  "attestation": {
-    "report": "BASE64_ENCODED_SGX_QUOTE",
-    "signature": "MOCK_SIGNATURE_FROM_INTEL_SERVICE"
-  },
-  "version": "1",
-  "status": "active"
-}
-```
-
-#### Step 2.2: Verify TEE Address Matches Contract
-
-Compare the `address` field from Step 2.1 with the `TEE_PUBLIC_KEY` from Step 1.3. They must match.
-
-#### Step 2.3: Check Service Health
-
-```bash
-curl https://your-tee-service.com/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-02-22T10:30:00Z",
-  "version": "1.0.0",
-  "services": {
-    "tee": "active",
-    "ai": "active",
-    "signer": "active"
-  }
-}
-```
+- **Etherscan Sepolia**: https://sepolia.etherscan.io
+- **Registry Contract**: TBD
+- **Faucet Contract**: TBD
+- **Deployer Wallet**: https://sepolia.etherscan.io/address/0x4DF66E441dEC0FcbFCd1464618f8D44eb2cAb0ad
 
 ---
 
-### 3. Verify End-to-End Flow
-
-#### Step 3.1: Test Challenge Generation
-
-```bash
-curl -X POST https://your-tee-service.com/challenge/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userAddress": "0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48",
-    "topic": "Test Topic"
-  }'
-```
-
-Expected response: Challenge object with modules and questions
-
-#### Step 3.2: Test Attestation Flow
-
-```bash
-curl -X POST https://your-tee-service.com/attest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userAddress": "0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48",
-    "topic": "Test Topic",
-    "challengeId": "0x8a3f2e1c4b6d7f9a0e2c4b6d8f0a2c4e6b8d0f2a4c6e8f0a2b4c6d8e0f2a4b6",
-    "answers": [
-      {"questionId": "q1", "answer": "Test answer"}
-    ]
-  }'
-```
-
-Expected response: Attestation with signature
-
-#### Step 3.3: Verify On-Chain Attestation
-
-```bash
-# Check attestation on contract
-cast call 0x7006e886e56426Fbb942B479AC8eF5C47a7531f1 \
-  "verifySkill(address,string)(bool,uint256,uint256)" \
-  0x3ED0B957Fd306FEB580A7dAe191ce71BA4157B48 \
-  "Test Topic" \
-  --rpc-url https://sepolia.infura.io/v3/your_project_id
-```
-
-Expected output: `(true, [score], [timestamp])`
-
----
-
-### 4. Verify Frontend
-
-#### Step 4.1: Access Frontend
-
-Visit: https://your-frontend.vercel.app
-
-Verify:
-- Page loads without errors
-- Connect Wallet button works
-- Challenge generation works
-- Attestation submission works
-
-#### Step 4.2: Test Web3 Integration
-
-1. Click "Connect Wallet"
-2. Select wallet (MetaMask, etc.)
-3. Verify wallet connects successfully
-4. Check that correct network (Sepolia) is selected
-
----
-
-## Post-Deployment Checklist
-
-### Contract Verification
-
-- [ ] Contract address verified on Etherscan
-- [ ] Source code verified
-- [ ] TEE public key enrolled
-- [ ] TEE activated (deployer renounced)
-- [ ] Constants match specifications:
-  - [ ] STAKE_AMOUNT = 0.001 ether
-  - [ ] TIMEOUT_DURATION = 7 days
-  - [ ] SCORE_THRESHOLD = 70
-  - [ ] TREASURY_FEE_BPS = 2000
-
-### TEE Service Verification
-
-- [ ] Service responds to `/health` endpoint
-- [ ] Service responds to `/identity` endpoint
-- [ ] TEE address matches contract
-- [ ] Challenge generation works
-- [ ] Attestation signing works
-- [ ] AI services configured (Cerebras, Groq fallback)
-
-### Frontend Verification
-
-- [ ] Frontend accessible via HTTPS
-- [ ] Environment variables configured
-- [ ] Wallet connection works
-- [ ] Challenge flow works
-- [ ] Attestation flow works
-- [ ] Verification query works
-
-### Integration Verification
-
-- [ ] End-to-end flow tested
-- [ ] Attestations verifiable on-chain
-- [ ] EIP-712 signatures valid
-- [ ] Economic distribution correct (80% user, 20% treasury)
-- [ ] Emergency refund works
-
----
-
-## Monitoring
-
-### Contract Monitoring
-
-Key metrics to monitor:
-- Total stakes
-- Total attestations
-- Treasury balance
-- Average challenge time
-- Emergency refund rate
-
-### TEE Service Monitoring
-
-Key metrics to monitor:
-- Uptime
-- Response time
-- Error rate
-- Challenge generation success rate
-- AI service availability
-
-### Frontend Monitoring
-
-Key metrics to monitor:
-- Page load time
-- User engagement
-- Conversion rate (stake to attestation)
-- Error rate
-
----
-
-## Maintenance
-
-### Contract Upgrades
-
-The current implementation is not upgradeable. To upgrade:
-
-1. Deploy new contract version
-2. Migrate data (if needed)
-3. Update frontend and TEE service
-4. Communicate upgrade to users
-
-### TEE Key Rotation
-
-To rotate TEE keys:
-
-1. Generate new key in enclave
-2. Call `enrollTEE` with new public key
-3. Activate new TEE
-4. Decommission old TEE
-
-### AI Provider Failover
-
-The circuit breaker pattern automatically fails over to fallback providers. Monitor logs to ensure smooth transitions.
-
----
-
-## Troubleshooting
-
-### Contract Issues
-
-**Issue**: Transaction fails with "InvalidState"
-
-**Solution**: Verify stake state using `getStakeDetails`
-
-**Issue**: "InvalidSignature" error
-
-**Solution**: Verify TEE public key matches contract
-
-### TEE Service Issues
-
-**Issue**: Challenge generation fails
-
-**Solution**: Check AI provider status and API key
-
-**Issue**: Attestation signing fails
-
-**Solution**: Verify key material in enclave
-
-### Frontend Issues
-
-**Issue**: Wallet connection fails
-
-**Solution**: Check network configuration (Sepolia)
-
-**Issue**: Challenge not displaying
-
-**Solution**: Check TEE service health and CORS settings
-
----
-
-## Rollback Procedures
-
-### Contract Rollback
-
-If critical bug discovered:
-
-1. Pause new stakes (if pause mechanism available)
-2. Announce to users
-3. Deploy fixed contract
-4. Migrate stakes to new contract
-5. Update frontend and TEE
-
-### TEE Service Rollback
-
-```bash
-# Deploy previous Docker image
-docker tag rtfm-tee-service:previous rtfm-tee-service:latest
-docker-compose up -d --force-recreate
-```
-
-### Frontend Rollback
-
-```bash
-# Rollback to previous deployment on Vercel
-vercel rollback --scope=production
-```
-
----
-
-## Security Considerations
-
-### Private Key Management
-
-- Never commit private keys to version control
-- Use environment variables for sensitive data
-- Rotate keys regularly
-- Use hardware wallets for contract ownership
-
-### Access Control
-
-- Restrict admin access to TEE service
-- Use strong authentication for deployment
-- Monitor access logs
-- Implement IP whitelisting where appropriate
-
-### Rate Limiting
-
-- Implement rate limiting on TEE service
-- Monitor for suspicious activity
-- Use Web3 provider rate limits
-
----
-
-## Contact & Support
-
-- **Technical Support**: support@rtfm-sovereign.com
-- **Security Issues**: security@rtfm-sovereign.com
-- **Documentation**: https://docs.rtfm-sovereign.com
-- **Discord**: https://discord.gg/rtfm-sovereign
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: 2026-02-22  
-**Deployment Status**: Production (Sepolia Testnet)
+*Last Updated: 2026-02-22 - Pending Deployment*

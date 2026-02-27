@@ -3,23 +3,22 @@
  * Tests the complete staking flow from UI to contract interaction
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock window.ethereum for transaction receipt polling
-const mockEthereum = {
-  request: vi.fn(),
-};
-
-Object.defineProperty(global, 'window', {
-  value: {
-    ethereum: mockEthereum,
-  },
-  writable: true,
-});
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 describe('Staking Integration Tests', () => {
+  // Mock window.ethereum for transaction receipt polling
+  const mockEthereum = {
+    request: jest.fn(),
+  };
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Set up window.ethereum mock before each test
+    (global as any).window = global.window || {};
+    (global as any).window.ethereum = mockEthereum;
+    jest.clearAllMocks();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('Transaction Receipt Polling', () => {

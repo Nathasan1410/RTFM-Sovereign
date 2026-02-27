@@ -19,6 +19,7 @@ describe('SGX Attestation Integration', () => {
     originalEnv = { ...process.env };
 
     // Set up test environment BEFORE importing server
+    process.env.NODE_ENV = 'test';
     process.env.MNEMONIC = 'test test test test test test test test test test test junk';
     process.env.CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000001';
     process.env.CHAIN_ID = '11155111';
@@ -30,9 +31,12 @@ describe('SGX Attestation Integration', () => {
     app = serverModule.app;
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     // Restore original environment
     process.env = originalEnv;
+
+    // Allow pending async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('GET /identity', () => {

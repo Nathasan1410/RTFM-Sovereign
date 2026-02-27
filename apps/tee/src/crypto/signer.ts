@@ -289,7 +289,10 @@ export class TEEIdentity {
       return decrypted;
     } catch (error) {
       // If unsealing fails, return null to generate new key
-      console.warn(`Key unsealing failed: ${(error as Error).message}`);
+      // Only warn in non-test environments to avoid cluttering test output
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn(`Key unsealing failed: ${(error as Error).message}`);
+      }
       return null;
     }
   }

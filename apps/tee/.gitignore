@@ -1,28 +1,111 @@
-# Environments
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.production
-.env.test
+# ==============================================================================
+# TEE Service - Git Ignore Configuration
+# ==============================================================================
 
-# Logs
+# ===========================================
+# ENVIRONMENT & SECRETS (CRITICAL)
+# ===========================================
+.env
+.env.*
+!.env.example
+!.env.pinata-template
+*.env.local
+*.env.development
+*.env.production
+*.env.test
+*.pem
+*.key
+*.crt
+secret*.json
+secrets.json
+
+# ===========================================
+# LOGS & DEBUG
+# ===========================================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+pm2.log
+pm2.err.log
 
-# Node modules
+# ===========================================
+# DEPENDENCIES & BUILD
+# ===========================================
 node_modules/
 dist/
 build/
 .next/
+out/
+*.tsbuildinfo
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
 
-# Misc
+# ===========================================
+# RUNTIME & TEMP
+# ===========================================
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
 .DS_Store
-*.pem
+Thumbs.db
 
-# IDE
+# ===========================================
+# IDE & EDITOR
+# ===========================================
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# ===========================================
+# TEE SPECIFIC
+# ===========================================
+sealed_keys/
+*.sealed
+gramine.manifest
+sgx_private_key.*
+
+# ===========================================
+# TEST & COVERAGE
+# ===========================================
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# ===========================================
+# DEPLOYMENT (Keep templates, ignore actual)
+# ===========================================
+docker-compose.override.yml
+!.docker-compose.yml
+Kubernetes/
+.docker/
+
+# ===========================================
+# BACKUPS & ARCHIVES
+# ===========================================
+*.bak
+*.backup
+*.zip
+*.tar.gz
+!docs/
+
+# ===========================================
+# NOTES & PERSONAL (Keep project docs)
+# ===========================================
+*.md
+!README.md
+!docs/
+!CONTRIBUTING.md
+!CHANGELOG.md
+!LICENSE
+!MIT-LICENSE

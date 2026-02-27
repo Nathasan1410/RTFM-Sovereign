@@ -3,44 +3,42 @@
  * Tests the actual ETH staking functionality, not just UI
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { StakingModal } from '@/components/staking-modal';
-import { WagmiProvider, createConfig, http } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Mock wagmi hooks
-vi.mock('wagmi', async () => {
-  const actual = await vi.importActual('wagmi');
-  return {
-    ...(actual as object),
-    useWriteContract: () => ({
-      writeContractAsync: vi.fn(),
-    }),
-    useReadContract: () => ({
-      data: undefined,
-      refetch: vi.fn(),
-    }),
-    useWaitForTransactionReceipt: () => ({
-      data: undefined,
-    }),
-    useAccount: () => ({
-      address: '0x1234567890123456789012345678901234567890',
-      isConnected: true,
-    }),
-  };
-});
+// Mock wagmi - complete mock to avoid ESM import issues
+jest.mock('wagmi', () => ({
+  WagmiProvider: ({ children }: { children: React.ReactNode }) => children,
+  createConfig: jest.fn(),
+  http: jest.fn(),
+  useWriteContract: () => ({
+    writeContractAsync: jest.fn(),
+  }),
+  useReadContract: () => ({
+    data: undefined,
+    refetch: jest.fn(),
+  }),
+  useWaitForTransactionReceipt: () => ({
+    data: undefined,
+  }),
+  useAccount: () => ({
+    address: '0x1234567890123456789012345678901234567890',
+    isConnected: true,
+  }),
+}));
+
+// Mock wagmi/chains
+jest.mock('wagmi/chains', () => ({
+  sepolia: { id: 11155111 },
+}));
 
 // Mock viem
-vi.mock('viem', async () => {
-  const actual = await vi.importActual('viem');
-  return {
-    ...(actual as object),
-    parseEther: (value: string) => BigInt(value.replace('.', '')) * BigInt(10) ** BigInt(15),
-    formatEther: (value: bigint) => '0.001',
-  };
-});
+jest.mock('viem', () => ({
+  parseEther: (value: string) => BigInt(value.replace('.', '')) * BigInt(10) ** BigInt(15),
+  formatEther: (value: bigint) => '0.001',
+}));
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -51,33 +49,24 @@ const createWrapper = () => {
     },
   });
 
-  const config = createConfig({
-    chains: [sepolia],
-    transports: {
-      [sepolia.id]: http(),
-    },
-  });
-
   return ({ children }: { children: React.ReactNode }) => (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
   );
 };
 
 describe('StakingModal', () => {
   const mockProps = {
     isOpen: true,
-    onClose: vi.fn(),
-    onLearnMode: vi.fn(),
-    onProofMode: vi.fn(),
+    onClose: jest.fn(),
+    onLearnMode: jest.fn(),
+    onProofMode: jest.fn(),
     topic: 'React Hooks',
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Mode Selection', () => {
@@ -146,8 +135,8 @@ describe('StakingModal', () => {
 
   describe('Staking Transaction', () => {
     it('should call writeContractAsync with correct parameters when Proof Mode is clicked', async () => {
-      const mockWriteContract = vi.fn().mockResolvedValue('0xTxHash');
-      
+      const mockWriteContract = jest.fn().mockResolvedValue('0xTxHash');
+
       // Would need to properly mock the wagmi hook
       expect(true).toBe(true); // Placeholder for integration test
     });
@@ -193,10 +182,15 @@ describe('StakingModal', () => {
     it('should display how it works information', () => {
       render(<StakingModal {...mockProps} />, { wrapper: createWrapper() });
 
-      expect(screen.getByText('💡 How it works:')).toBeInTheDocument();
-      expect(screen.getByText('Learn Mode:')).toBeInTheDocument();
-      expect(screen.getByText('Proof Mode:')).toBeInTheDocument();
-      expect(screen.getByText('80% refund (pass)')).toBeInTheDocument();
+      // The component displays "How it works:" with emoji
+      expect(screen.getByText(/How it works:/)).toBeInTheDocument();
+      expect(screen.getByText(/Learn Mode:/)).toBeInTheDocument();
+      // "Proof Mode:" appears twice (in info box and footer)
+      expect(screen.getAllByText(/Proof Mode:/).length).toBeGreaterThan(0);
+      // Check for the refund info text which appears as "80% refund (pass) or 20% refund (fail)"
+      // Use getAllByText since "80% refund" appears multiple times
+      expect(screen.getAllByText(/80% refund/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/20% refund/).length).toBeGreaterThan(0);
     });
   });
 });

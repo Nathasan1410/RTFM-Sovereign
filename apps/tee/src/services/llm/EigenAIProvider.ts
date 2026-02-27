@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ethers } from 'ethers';
 import { logger } from '../../utils/logger';
 import { LLMProvider, Challenge, RoadmapResponse } from './types';
 
@@ -6,12 +7,14 @@ export class EigenAIProvider implements LLMProvider {
   public readonly name = 'EigenAI';
   private endpoint: string;
   private walletAddress: string;
+  private wallet: ethers.Wallet;
 
   constructor(private eigenPrivateKey: string) {
-    this.endpoint = process.env.EIGENAI_API_URL || 'https://eigenai-sepolia.eigencloud.xyz/v1/chat/completions';
+    this.endpoint = process.env.EIGENAI_API_URL || 'https://determinal-api.eigenarcade.com/api/chat/completions';
     
-    // Extract wallet address from private key (simplified - in production use proper derivation)
-    this.walletAddress = '0x' + eigenPrivateKey.slice(-40);
+    // Create wallet instance from private key for signing
+    this.wallet = new ethers.Wallet(eigenPrivateKey);
+    this.walletAddress = this.wallet.address;
   }
 
   async generateChallenge(userAddress: string, topic: string, seed: number): Promise<Challenge> {
@@ -283,13 +286,14 @@ export class EigenAIProvider implements LLMProvider {
   }
 
   private async getGrantMessage(): Promise<string> {
-    // Implement grant message generation
-    return `I request access to EigenAI for wallet ${this.walletAddress}`;
+    // Generate a proper grant message with timestamp for replay protection
+    const timestamp = Math.floor(Date.now() / 1000);
+    return `I request access to EigenAI API for wallet ${this.walletAddress} at timestamp ${timestamp}`;
   }
 
   private async signMessage(message: string): Promise<string> {
-    // Implement message signing with private key
-    // For now, return placeholder
-    return '0x' + '0'.repeat(130);
+    // Sign the message using ethers wallet (proper EIP-191 personal sign)
+    const signature = await this.wallet.signMessage(message);
+    return signature;
   }
 }

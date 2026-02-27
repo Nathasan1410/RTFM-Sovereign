@@ -21,14 +21,16 @@ export class LLMService {
     eigenKey: string,
     eigenPrivateKey: string = ''
   ) {
+    // EigenAI FIRST (primary provider with grant)
     if (eigenPrivateKey) {
         this.providers.push(new EigenAIProvider(eigenPrivateKey));
     }
     
+    // Fallback providers
     if (groqKey) this.providers.push(new GroqProvider(groqKey));
     if (braveKey) this.providers.push(new BraveProvider(braveKey));
     if (hyperbolicKey) this.providers.push(new HyperbolicProvider(hyperbolicKey));
-    
+
     this.providers.forEach(() => {
       this.circuitOpen.push(false);
       this.failureCounts.push(0);

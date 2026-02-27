@@ -59,7 +59,7 @@ export class GroqProvider implements LLMProvider {
             { role: 'user', content: prompt }
           ],
           temperature: 0.7, // Higher temp allowed for fallback
-          max_tokens: 4000,
+          max_tokens: 2000, // Reduced to prevent truncation
           response_format: { type: 'json_object' }
         },
         {

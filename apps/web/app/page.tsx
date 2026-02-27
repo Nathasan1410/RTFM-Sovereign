@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RecentRoadmaps } from "@/components/recent-roadmaps";
 import { StakingModal } from "@/components/staking-modal";
+import { RoadmapLoading } from "@/components/RoadmapLoading";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Roadmap } from "@/types/schemas";
@@ -58,6 +59,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isStakingModalOpen, setIsStakingModalOpen] = useState(false);
   const [pendingTopic, setPendingTopic] = useState("");
+  const [stakeTxHash, setStakeTxHash] = useState<string | undefined>();
+  const [isGenerating, setIsGenerating] = useState(false);
   const [filter, setFilter] = useState<"all" | "in-progress" | "completed">("all");
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -93,11 +96,18 @@ export default function Home() {
     };
   }, [roadmaps, progressState]);
 
-  const handleGenerateRoadmap = async (mode: "learn" | "proof") => {
+  const handleGenerateRoadmap = async (mode: "learn" | "proof", txHash?: string) => {
     const cleanTopic = pendingTopic.trim();
     setIsStakingModalOpen(false);
     setError(null);
+    setIsGenerating(true); // Show loading screen
     setIsLoading(true);
+
+    // Store stake tx hash if provided
+    if (txHash) {
+      setStakeTxHash(txHash);
+      console.log("[Home Page] Stake transaction:", txHash);
+    }
 
     try {
       // Get existing roadmaps titles for context
@@ -166,6 +176,7 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       setError((err as Error).message);
+      setIsGenerating(false); // Hide loading on error
     } finally {
       setIsLoading(false);
     }
@@ -191,6 +202,15 @@ export default function Home() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-56px)] py-20 px-6 overflow-hidden bg-zinc-950">
+      {/* Loading Screen - Shows during roadmap generation */}
+      {isGenerating && pendingTopic && (
+        <RoadmapLoading
+          topic={pendingTopic}
+          mode="proof"
+          stakeTxHash={stakeTxHash}
+        />
+      )}
+
       {/* Hero Section */}
       <div className="text-center max-w-2xl mx-auto space-y-6">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-zinc-50">
@@ -429,7 +449,7 @@ export default function Home() {
         isOpen={isStakingModalOpen}
         onClose={() => setIsStakingModalOpen(false)}
         onLearnMode={() => handleGenerateRoadmap("learn")}
-        onProofMode={() => handleGenerateRoadmap("proof")}
+        onProofMode={(txHash) => handleGenerateRoadmap("proof", txHash)}
         topic={pendingTopic}
       />
     </div>

@@ -349,26 +349,34 @@ export async function POST(req: Request) {
     };
 
     // Use the new Dynamic Roadmap Generator
+    console.log('[API Generate] Calling TEE service:', `${TEE_SERVICE_URL}/roadmap/generate-dynamic`);
+    console.log('[API Generate] Request body:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch(`${TEE_SERVICE_URL}/roadmap/generate-dynamic`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      // Add timeout
+      signal: AbortSignal.timeout(120000), // 2 minute timeout
     });
 
+    console.log('[API Generate] TEE response status:', response.status);
+
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
       console.warn('[API Generate] TEE service failed, falling back to demo mode:', errorData.error);
       // Fallback to demo mode if TEE service fails
       const demoRoadmap = generateDemoRoadmap(cleanTopic, version);
-      
+
       const validatedResponse = {
         title: demoRoadmap.title,
         modules: demoRoadmap.modules
       };
-      
+
       const validated = GenerateResponseSchema.parse(validatedResponse);
-      
+
       return NextResponse.json({
         ...validated,
         sessionId: null,
@@ -377,6 +385,10 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
+    console.log('[API Generate] TEE response received:', {
+      milestones: data.milestones?.length,
+      sessionId: data.session_id
+    });
     
     // Map DynamicMilestones to ModuleContent (Micro-Steps flattened)
     const modules = [];

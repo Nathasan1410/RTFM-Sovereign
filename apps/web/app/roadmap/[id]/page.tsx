@@ -401,8 +401,8 @@ function StakingStatusSection({
         Milestones: {completedModules}/{totalModules}
       </div>
 
-      {/* Give Up Button - Show when user has partial completion (not 0%, not 100%, hasn't claimed) */}
-      {completedModules > 0 && completedModules < totalModules && !hasRefunded && !isClaiming && (
+      {/* Give Up Button - Show when user has staked and NOT completed all (shows from 0%) */}
+      {roadmap.isStaked && completedModules < totalModules && !hasRefunded && !isClaiming && (
         <div className="space-y-2">
           <div className="p-3 border border-orange-500/30 bg-orange-500/10 rounded-sm">
             <div className="flex items-start gap-2 mb-2">
@@ -412,8 +412,10 @@ function StakingStatusSection({
               </div>
             </div>
             <p className="text-xs text-zinc-400 mb-2">
-              You've completed {completedModules}/{totalModules} modules. 
-              You can claim 20% refund (0.0002 ETH) if you give up now.
+              {completedModules === 0
+                ? `You haven't completed any modules yet. You can claim 20% refund (0.0002 ETH) if you give up now.`
+                : `You've completed ${completedModules}/${totalModules} modules. You can claim 20% refund (0.0002 ETH) if you give up now.`
+              }
             </p>
             <Button
               onClick={handleGiveUp}

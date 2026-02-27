@@ -1049,7 +1049,16 @@ app.get('/checkpoint/user/:userAddress', async (req, res) => {
     const userSessions = allSessions.filter(s => s.user_address.toLowerCase() === userAddress.toLowerCase());
 
     // Collect all checkpoints
-    const checkpoints = [];
+    const checkpoints: Array<{
+      sessionId: string;
+      milestoneId: number;
+      score: number;
+      feedback: string;
+      timestamp: number;
+      ipfsHash: string;
+      snapshot: any;
+      ipfsGatewayUrl: string;
+    }> = [];
     
     for (const session of userSessions) {
       for (const score of session.verification.milestone_scores) {

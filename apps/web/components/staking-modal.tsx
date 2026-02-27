@@ -18,7 +18,7 @@ interface StakingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLearnMode: () => void;
-  onProofMode: () => void;
+  onProofMode: (txHash: string) => void;
   topic: string;
 }
 
@@ -100,12 +100,12 @@ export function StakingModal({ isOpen, onClose, onLearnMode, onProofMode, topic 
 
       if (receipt.status === 'success') {
         console.log('✅ Staking successful!');
-        
+
         // Refresh stake data
         await refetchStake();
-        
+
         // STEP 3: Generate roadmap AFTER successful stake
-        onProofMode();
+        onProofMode(hash); // Pass tx hash to parent for loading screen
         onClose();
       } else {
         throw new Error('Transaction failed on chain');

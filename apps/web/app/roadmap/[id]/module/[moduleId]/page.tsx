@@ -416,6 +416,7 @@ function ModuleWorkspace({
             milestoneId={moduleId}
             height="400px"
             showPreview={false}
+            allowMultiFile={true}
           />
 
           {/* Verify Button */}

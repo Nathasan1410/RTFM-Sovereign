@@ -24,7 +24,7 @@ export function RecentRoadmaps({ filter = "all" }: { filter?: "all" | "in-progre
       notStarted: [] as any[],
     };
 
-    all.forEach((roadmap) => {
+    all.forEach((roadmap: any) => {
       const completedModules = roadmap.modules.filter((m: any) =>
         progressState[`${roadmap.id}_${m.id}`]?.isCompleted
       ).length;

@@ -19,7 +19,16 @@
     "contracts:deploy": "pnpm --filter @rtfm/contracts deploy:sepolia",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix"
+    "lint:fix": "pnpm -r lint:fix",
+    "test": "pnpm -r test",
+    "build": "pnpm web:build && pnpm tee:build && pnpm contracts:compile",
+    "build:production": "node scripts/production-build.js",
+    "prepare:git": "node scripts/prepare-git.js",
+    "clean": "rimraf .next apps/tee/dist packages/contracts/cache packages/contracts/out",
+    "clean:all": "rimraf .next apps/tee/dist packages/contracts/cache packages/contracts/out node_modules apps/*/node_modules packages/*/node_modules",
+    "predeploy": "pnpm build",
+    "deploy": "pnpm contracts:deploy && pnpm tee:docker",
+    "release": "pnpm prepare:git && pnpm build:production"
   },
   "devDependencies": {
     "@types/node": "^20",

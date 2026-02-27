@@ -1,69 +1,207 @@
-# Dependencies
-node_modules
-.pnp
+# ==============================================================================
+# RTFM-Sovereign Git Ignore Configuration
+# Production-Ready Configuration for GitHub
+# ==============================================================================
+
+# ==============================================================================
+# DEPENDENCIES
+# ==============================================================================
+node_modules/
+.pnp/
 .pnp.js
+.pnpm-store/
+pnpm-lock.yaml.lock
 
-# Testing
-coverage
-reports
-
+# ==============================================================================
+# BUILD ARTIFACTS
+# ==============================================================================
 # Next.js
 .next/
 out/
 build/
 dist/
-
-# Misc
-.DS_Store
-*.pem
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local Env Files
-.env
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Vercel
-.vercel
+*.tsbuildinfo
+next-env.d.ts
 
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
-.idea
-.vscode
-*.swp
-*.swo
+# ==============================================================================
+# TESTING & COVERAGE
+# ==============================================================================
+coverage/
+reports/
+*.test.js
+*.test.jsx
+*.test.ts
+*.test.tsx
+test-*.json
+test-*.html
+test_*.html
+test-*.ps1
+test-*.sh
+test-*.mjs
+test-*.cjs
 
-# History
-.history/
+# ==============================================================================
+# DEBUG & LOGS
+# ==============================================================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
 
-# TEE Secrets (CRITICAL - never commit)
+# ==============================================================================
+# LOCAL ENVIRONMENT FILES (CRITICAL - NEVER COMMIT)
+# ==============================================================================
+# Root level
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+!.env.example
+
+# App-specific
+apps/web/.env
+apps/web/.env.local
+apps/web/.env.development.local
+apps/web/.env.test.local
+apps/web/.env.production.local
+apps/web/.env.*.local
+apps/web/.env.example.local
+
+# TEE-specific (CRITICAL SECURITY)
+apps/tee/.env
+apps/tee/.env.local
 apps/tee/.env.tee
 apps/tee/.env.tee.local
-apps/tee/sealed/
-*.key
-gramine-key/
+apps/tee/.env.pinata
+apps/tee/.env.*.local
 
-# Contract deployment artifacts (generated)
+# Contracts-specific
+packages/contracts/.env
+packages/contracts/.env.local
+packages/contracts/.env.deployment
 packages/contracts/cache/
 packages/contracts/out/
 packages/contracts/broadcast/
 
-# Environment (Security)
-.env*.local
-!.env.example
+# ==============================================================================
+# TEE SECRETS & SECURITY (CRITICAL - NEVER COMMIT)
+# ==============================================================================
+apps/tee/sealed/
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+gramine-key/
+*.sig
+*.manifest
+*.manifest.template
+!apps/tee/gramine.manifest.template
 
-# Documentation (Keep root docs clean)
+# Private keys and certificates
+private/
+secrets/
+credentials/
+
+# ==============================================================================
+# IDE & EDITOR
+# ==============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ==============================================================================
+# OS FILES
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==============================================================================
+# VERCEL & DEPLOYMENT
+# ==============================================================================
+.vercel/
+
+# ==============================================================================
+# HISTORY & BACKUP
+# ==============================================================================
+.history/
+*.bak
+*.tmp
+*.temp
+*.old
+*.original
+
+# ==============================================================================
+# DOCKER (KEEP DOCKERFILES, IGNORE VOLUMES)
+# ==============================================================================
+docker-volumes/
+*.docker.local
+
+# ==============================================================================
+# DOCUMENTATION (KEEP ROOT DOCS CLEAN)
+# ==============================================================================
+# Archive old documentation
 docs/archive/
-*.md
+docs/screenshots/
+docs/assets/
+
+# ==============================================================================
+# SUBMODULES & SUBTREES
+# ==============================================================================
+# Keep submodules but ignore their build artifacts
+packages/contracts/lib/*/out/
+packages/contracts/lib/*/cache/
+
+# ==============================================================================
+# MISC
+# ==============================================================================
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
+# Null files
+$null
+
+# JSON test files
+test-*.json
+verify-*.json
+
+# ==============================================================================
+# WHAT TO KEEP (EXCEPTIONS)
+# ==============================================================================
+# Keep example files
+!.env.example
+!apps/web/.env.example
+!apps/tee/.env.example
+!apps/tee/.env.pinata-template
+!packages/contracts/.env.example
+
+# Keep configuration files
+!pnpm-lock.yaml
+!package-lock.json
+
+# Keep documentation
 !README.md
 !CONTRIBUTING.md
 !SECURITY.md
@@ -77,14 +215,23 @@ docs/archive/
 !docs/README.md
 !docs/**/*.md
 
-# Temporary files
-*.tmp
-*.bak
-*.log
+# Keep Dockerfiles
+!Dockerfile
+!Dockerfile.*
+!apps/tee/Dockerfile
+!apps/tee/Dockerfile.*
+!apps/web/Dockerfile
 
-# Test artifacts
-test-*.json
-test-*.html
-test_*.html
-*.test.js
-*.test.jsx
+# Keep config files
+!*.config.js
+!*.config.ts
+!*.config.mjs
+!*.json
+!tsconfig.json
+!next.config.ts
+!docker-compose.yml
+!pnpm-workspace.yaml
+
+# ==============================================================================
+# END OF GITIGNORE
+# ==============================================================================

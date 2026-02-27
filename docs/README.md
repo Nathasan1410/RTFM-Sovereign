@@ -1,77 +1,184 @@
-# 📚 RTFM Documentation
+# RTFM-Sovereign Documentation
 
-Welcome to the RTFM documentation hub.
+> **Complete documentation for RTFM-Sovereign - Decentralized Skill Verification Platform**
 
-## 📖 Quick Links
-
-| For | Go To |
-|-----|-------|
-| **Getting Started** | [user-guide/getting-started.md](./user-guide/getting-started.md) |
-| **Architecture** | [technical/ARCHITECTURE.md](./technical/ARCHITECTURE.md) |
-| **API Reference** | [technical/API.md](./technical/API.md) |
-| **Deployment** | [technical/DEPLOYMENT.md](./technical/DEPLOYMENT.md) |
-| **Business Model** | [business/](./business/) |
-| **Hackathon** | [hackathon/](./hackathon/) |
-
-## 📁 Documentation Structure
-
-```
-docs/
-├── user-guide/          # How to use RTFM
-├── technical/           # Architecture, API, Deployment
-├── business/            # Business model, market analysis
-├── hackathon/           # EigenLayer Hackathon submission
-├── reports/             # Implementation reports
-├── archive/             # Historical docs (outdated)
-└── README.md            # You are here
-```
-
-## 🎯 What is RTFM?
-
-**RTFM (Read The F*cking Manual)** is a sovereign learning platform that:
-- Generates personalized learning roadmaps from official documentation
-- Verifies code with TEE (Trusted Execution Environment)
-- Issues on-chain credentials
-- Uses economic incentives (staking + refunds)
-
-## 🚀 Getting Started
-
-### For Users
-1. Visit the platform
-2. Enter a topic you want to learn
-3. Stake 0.001 ETH (Proof Mode) or use Learn Mode (free)
-4. Complete challenges
-5. Get verified credentials on-chain
-
-### For Developers
-1. Read [ARCHITECTURE.md](./technical/ARCHITECTURE.md)
-2. Check out the [API.md](./technical/API.md)
-3. See [CONTRIBUTING.md](../CONTRIBUTING.md)
-
-### For Hackathon Judges
-1. See [hackathon/SUBMISSION.md](./hackathon/SUBMISSION.md)
-2. Demo video and repo links there
-3. Business model in [business/](./business/)
-
-## 📊 Project Status
-
-**Current Status:** ✅ Production Ready
-
-- [x] Staking system implemented
-- [x] TEE verification working
-- [x] On-chain credentials
-- [x] Build passing
-- [x] Tests passing (14/14)
-
-See [STATUS.md](./STATUS.md) for detailed status.
-
-## 🔗 External Links
-
-- **GitHub:** [github.com/Nathasan1410/RTFM](https://github.com/Nathasan1410/RTFM)
-- **EigenLayer Hackathon:** Submission in [hackathon/](./hackathon/)
-- **Contracts:** Sepolia `0xAc9Ad4A5e01e4351BD42d60858557cAEe0F50F73`
+[![Version](https://img.shields.io/badge/version-1.0.0-green)](../package.json)
+[![License](https://img.shields.io/badge/license-MIT-blue)](../LICENSE)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-blue)](./README.md)
 
 ---
 
-**Last Updated:** 2026-02-25  
-**Version:** 1.0
+## 📚 Quick Navigation
+
+### Getting Started
+| Document | Description |
+|----------|-------------|
+| [Home](home.md) | Documentation overview and quick start |
+| [User Guide](USER_GUIDE.md) | End-user tutorial and workflow |
+| [Getting Started](user-guide/getting-started.md) | Installation and setup guide |
+| [Keyboard Shortcuts](user-guide/keyboard-shortcuts.md) | Productivity shortcuts |
+
+### Technical Documentation
+| Document | Description |
+|----------|-------------|
+| [Architecture](technical/architecture.md) | System design and component hierarchy |
+| [API Reference](technical/api-reference.md) | Complete API documentation |
+| [Implementation Guide](technical/IMPLEMENTATION_GUIDE.md) | Development guidelines |
+| [Code Verification](technical/code-verification-system.md) | AI judging engine details |
+
+### Business & Strategy
+| Document | Description |
+|----------|-------------|
+| [Business Model](business/MARKET_ANALYSIS_AND_BUSINESS_MODEL.md) | Market analysis and monetization |
+| [What Makes RTFM Sovereign](business/WHAT_MAKES_RTFM_SOVEREIGN.md) | Unique value proposition |
+| [Complete Project Master](business/COMPLETE_PROJECT_MASTER_DOCUMENT.md) | Comprehensive project overview |
+| [Enhanced Business Analysis](business/ENHANCED_BUSINESS_MODEL_ANALYSIS.md) | Deep dive into business strategy |
+
+### Hackathon Resources
+| Document | Description |
+|----------|-------------|
+| [Winning Strategy](hackathon/EIGENLAYER_HACKATHON_WINNING_STRATEGY.md) | Strategy for EigenCloud OIC 2026 |
+
+### Deployment & Operations
+| Document | Description |
+|----------|-------------|
+| [Deployment Guide](DEPLOYMENT.md) | Production deployment instructions |
+| [Troubleshooting](TROUBLESHOOTING.md) | Common issues and solutions |
+| [Testing Guide](testing/README.md) | Testing strategies and procedures |
+
+---
+
+## 🗂️ Documentation Structure
+
+```
+docs/
+├── README.md                          # This file - documentation index
+├── home.md                            # Documentation home
+├── INDEX.md                           # Alternative index
+├── STATUS.md                          # Project status report
+├── USER_GUIDE.md                      # End-user documentation
+├── TROUBLESHOOTING.md                 # Troubleshooting guide
+├── DEPLOYMENT.md                      # Deployment instructions
+├── REPOSITORY_CLEANUP_GUIDE.md        # Repository maintenance
+├── technical/
+│   ├── architecture.md                # System architecture
+│   ├── api-reference.md               # API documentation
+│   ├── IMPLEMENTATION_GUIDE.md        # Implementation details
+│   └── code-verification-system.md    # Code verification system
+├── business/
+│   ├── MARKET_ANALYSIS_AND_BUSINESS_MODEL.md
+│   ├── WHAT_MAKES_RTFM_SOVEREIGN.md
+│   ├── COMPLETE_PROJECT_MASTER_DOCUMENT.md
+│   └── ENHANCED_BUSINESS_MODEL_ANALYSIS.md
+├── user-guide/
+│   ├── getting-started.md             # Quick start guide
+│   ├── keyboard-shortcuts.md          # Keyboard shortcuts
+│   └── workflow.md                    # User workflow
+├── testing/
+│   └── README.md                      # Testing documentation
+└── hackathon/
+    └── EIGENLAYER_HACKATHON_WINNING_STRATEGY.md
+```
+
+---
+
+## 🎯 Documentation Categories
+
+### For Users
+- **Getting Started**: Installation, setup, first steps
+- **User Guide**: Complete workflow and features
+- **Keyboard Shortcuts**: Productivity tips
+- **Troubleshooting**: Common issues and solutions
+
+### For Developers
+- **Architecture**: System design and data flows
+- **API Reference**: Endpoint documentation
+- **Implementation Guide**: Development guidelines
+- **Code Verification**: AI judging engine details
+
+### For DevOps
+- **Deployment Guide**: Production deployment
+- **Testing Guide**: Testing procedures
+- **Troubleshooting**: Operational issues
+
+### For Stakeholders
+- **Business Model**: Market analysis and strategy
+- **Project Master**: Comprehensive overview
+- **Status Report**: Current project status
+- **Hackathon Strategy**: Competition strategy
+
+---
+
+## 📖 Root Level Documents
+
+These documents are located in the project root:
+
+| Document | Description |
+|----------|-------------|
+| [README](../README.md) | Project overview and quick start |
+| [CONTRIBUTING](../CONTRIBUTING.md) | Contribution guidelines |
+| [SECURITY](../SECURITY.md) | Security policy and reporting |
+| [LICENSE](../LICENSE) | MIT License |
+| [CHANGELOG](../CHANGELOG.md) | Version history |
+| [Roadmap](../Roadmap.md) | Project roadmap |
+| [API](../API.md) | Smart contract and REST API |
+| [ARCHITECTURE](../ARCHITECTURE.md) | High-level architecture |
+| [DEPLOYMENTS](../DEPLOYMENTS.md) | Deployment records |
+| [TEE_SPEC](../TEE_SPEC.md) | TEE technical specification |
+
+---
+
+## 🔗 External Resources
+
+- **GitHub Repository**: [github.com/rtfm-sovereign](https://github.com/rtfm-sovereign)
+- **Live Demo**: [rtfm-sovereign.vercel.app](https://rtfm-sovereign.vercel.app)
+- **Smart Contracts**: [Etherscan](https://sepolia.etherscan.io/address/0x7006e886e56426Fbb942B479AC8eF5C47a7531f1)
+- **EigenLayer**: [eigenlayer.org](https://www.eigenlayer.org/)
+
+---
+
+## 📝 Documentation Maintenance
+
+### Adding New Documentation
+1. Create `.md` file in appropriate subdirectory
+2. Add entry to this index
+3. Update table of contents
+4. Commit with descriptive message
+
+### Updating Documentation
+1. Keep version numbers consistent
+2. Update changelog when modifying
+3. Review for clarity and accuracy
+
+### Documentation Standards
+- Use clear, concise language
+- Include code examples where relevant
+- Add links to related documents
+- Keep formatting consistent
+
+---
+
+## 🤝 Contributing to Documentation
+
+We welcome documentation improvements! Please see our [Contributing Guide](../CONTRIBUTING.md) for details.
+
+### Documentation Priorities
+- ✅ Core functionality documented
+- ✅ API reference complete
+- ✅ User guides available
+- 🚧 Code examples expanded
+- 🚧 Translations planned
+
+---
+
+## 📞 Support
+
+For documentation questions or issues:
+- Open a GitHub Issue
+- Contact: support@rtfm-sovereign.com
+- Discord: [Join our server](https://discord.gg/rtfm-sovereign)
+
+---
+
+*Last Updated: 2026-02-28*
+*Documentation Version: 1.0.0*

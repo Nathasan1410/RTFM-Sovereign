@@ -207,7 +207,7 @@ export default function Home() {
         <RoadmapLoading
           topic={pendingTopic}
           mode="proof"
-          stakeTxHash={stakeTxHash}
+          {...(stakeTxHash !== undefined ? { stakeTxHash } : {})}
         />
       )}
 

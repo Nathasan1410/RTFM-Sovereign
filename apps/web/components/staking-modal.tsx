@@ -68,7 +68,7 @@ export function StakingModal({ isOpen, onClose, onLearnMode, onProofMode, topic 
     // If already staked, skip staking and go straight to roadmap
     if (isAlreadyStaked) {
       console.log('✅ Already staked for this topic, proceeding to roadmap generation');
-      onProofMode();
+      onProofMode('');
       onClose();
       return;
     }

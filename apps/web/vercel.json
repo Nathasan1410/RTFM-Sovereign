@@ -1,5 +1,0 @@
-{
-  "framework": "nextjs",
-  "installCommand": "npm install -g pnpm@10.28.1 && pnpm install --no-frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @rtfm/web run build"
-}

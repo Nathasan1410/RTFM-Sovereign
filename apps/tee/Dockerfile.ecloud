@@ -1,0 +1,33 @@
+# EigenCloud TEE Deployment Dockerfile
+# Standalone build for RTFM TEE service
+
+FROM node:18-bullseye-slim
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set working directory
+WORKDIR /app
+
+# Copy TEE package files
+COPY apps/tee/package*.json ./
+
+# Install production dependencies
+RUN pnpm install --prod
+
+# Copy TEE source code
+COPY apps/tee/src ./src
+COPY apps/tee/tsconfig.json ./
+
+# Build TypeScript
+RUN pnpm run build
+
+# Expose port
+EXPOSE 3001
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Start the server
+CMD ["node", "dist/server.js"]

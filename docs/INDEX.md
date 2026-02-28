@@ -1,225 +1,164 @@
 # RTFM-Sovereign Documentation Index
 
-Welcome to the RTFM-Sovereign documentation hub. This index helps you quickly find the information you need.
+> **Complete documentation for RTFM-Sovereign - Decentralized Skill Verification Platform**
 
-## Quick Navigation
-
-### For First-Time Users
-
-| Document | Description | Audience |
-|-----------|-------------|------------|
-| [User Guide](USER_GUIDE.md) | End-user documentation with workflows and FAQs | Users |
-| [Demo Script](../DEMO_SCRIPT.md) | 5-minute demo script for hackathon judges | Presenters |
-
-### For Developers
-
-| Document | Description | Audience |
-|-----------|-------------|------------|
-| [Architecture](ARCHITECTURE.md) | System overview, data flows, component hierarchy, trust model | Developers |
-| [API Reference](API.md) | Complete API documentation for TEE endpoints, smart contracts, frontend hooks | Developers |
-| [Deployment Guide](DEPLOYMENT.md) | How to deploy frontend, TEE service, and smart contracts | DevOps |
-| [Troubleshooting](TROUBLESHOOTING.md) | Comprehensive error catalog with solutions for all components | Support |
-
-### For DevOps & Administrators
-
-| Document | Description | Audience |
-|-----------|-------------|------------|
-| [Status Report](STATUS.md) | Executive summary, current project state, deployment status | Managers |
-| Environment Configs | [Root .env.example](../.env.example) | [Web .env.example](../apps/web/.env.example) | [TEE .env.example](../apps/tee/.env.example) | DevOps |
+**Last Updated**: February 28, 2026  
+**Status**: ✅ Production Deployed on EigenCloud
 
 ---
 
-## Documentation Statistics
+## 🚀 Quick Links
 
-| Metric | Value |
-|--------|--------|
-| Total Documents | 8 |
-| Code Documentation | ~95% JSDoc coverage |
-| Last Updated | 2026-02-23 |
-| Status | Production Ready ✅ |
-
----
-
-## Getting Started Checklist
-
-### For Users
-
-1. ✅ Read [User Guide](USER_GUIDE.md)
-2. ✅ Connect your wallet (MetaMask, WalletConnect)
-3. ✅ Select a topic and stake 0.001 ETH
-4. ✅ Complete the challenge
-5. ✅ Receive your attestation
-6. ✅ Verify your attestation on blockchain
-
-### For Developers
-
-1. ✅ Clone the repository
-2. ✅ Install dependencies: `pnpm install`
-3. ✅ Configure environment: Copy `.env.example` to `.env`
-4. ✅ Read [Architecture](ARCHITECTURE.md) for system overview
-5. ✅ Run development servers:
-   ```bash
-   pnpm web:dev      # Frontend (Next.js)
-   cd apps/tee && npm start  # TEE Service
-   ```
-6. ✅ Build for production: `pnpm web:build`
-
-### For DevOps
-
-1. ✅ Review [Deployment Guide](DEPLOYMENT.md)
-2. ✅ Configure environment variables for production
-3. ✅ Deploy smart contracts (if not already deployed)
-4. ✅ Deploy TEE service to EigenCompute or Docker
-5. ✅ Deploy frontend to Vercel
-6. ✅ Verify deployment using health checks
+| I want to... | Go to... |
+|--------------|----------|
+| **Deploy TEE** | [TEE Deployment Guide](TEE_DEPLOYMENT.md) |
+| **Understand architecture** | [System Architecture](technical/architecture.md) |
+| **Use the platform** | [User Guide](user-guide/getting-started.md) |
+| **See API docs** | [API Reference](technical/api-reference.md) |
+| **View hackathon materials** | [Hackathon Docs](hackathon/) |
 
 ---
 
-## Emergency Contacts & Resources
+## 📖 Documentation Categories
 
-### Documentation
-- **Documentation Hub**: [docs/](./)
-- **Root README**: [README.md](../README.md)
-- **Demo Script**: [DEMO_SCRIPT.md](../DEMO_SCRIPT.md)
+### 🎯 Core Documentation
 
-### Project Links
-- **GitHub Repository**: https://github.com/your-org/RTFM-Sovereign
-- **Live Demo**: https://rtfm-sovereign.vercel.app
-- **Smart Contracts** (Sepolia):
-  - [RTFMVerifiableRegistry](https://sepolia.etherscan.io/address/0x7006e886e56426Fbb942B479AC8eF5C47a7531f1)
-  - [RTFMFaucet](https://sepolia.etherscan.io/address/0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790)
+| Document | Description | Status |
+|----------|-------------|--------|
+| [**TEE Deployment**](TEE_DEPLOYMENT.md) | EigenCloud TEE deployment guide | ✅ LIVE |
+| [**Architecture**](technical/architecture.md) | System architecture and design | ✅ |
+| [**API Reference**](technical/api-reference.md) | TEE and smart contract APIs | ✅ |
+| [**Code Verification**](technical/code-verification-system.md) | AI judging engine details | ✅ |
+| [**Implementation Guide**](technical/IMPLEMENTATION_GUIDE.md) | Developer implementation guide | ✅ |
 
-### Support
-- **Discord**: [Join our Discord](https://discord.gg/rtfm-sovereign)
-- **Email**: support@rtfm-sovereign.com
-- **Twitter**: [@RTFMSovereign](https://twitter.com/RTFMSovereign)
+### 👥 User Documentation
 
-### Demo Mode
-For presentation safety, Demo Mode can be activated without real ETH/TEE:
-- **Activation**: Press `Shift+D` three times quickly (within 1 second)
-- **Deactivation**: Refresh page or clear localStorage
-- **Configuration**: Set `NEXT_PUBLIC_DEMO_MODE=true` in `.env`
+| Document | Description |
+|----------|-------------|
+| [**Getting Started**](user-guide/getting-started.md) | Quick start guide |
+| [**Workflow**](user-guide/workflow.md) | How to use RTFM-Sovereign |
+| [**Keyboard Shortcuts**](user-guide/keyboard-shortcuts.md) | Productivity tips |
+
+### 🏆 Hackathon
+
+| Document | Description |
+|----------|-------------|
+| [**Winning Strategy**](hackathon/EIGENLAYER_HACKATHON_WINNING_STRATEGY.md) | Project overview for judges |
+| [**Pitch Deck**](hackathon/PITCH_DECK_COMPLETE.md) | Complete pitch deck |
+| [**Demo Script**](hackathon/DEMO_SCRIPT_5MIN.md) | 5-minute demo script |
+
+### 💼 Business
+
+| Document | Description |
+|----------|-------------|
+| [**Master Document**](business/COMPLETE_PROJECT_MASTER_DOCUMENT.md) | Complete project overview |
+| [**Value Proposition**](business/WHAT_MAKES_RTFM_SOVEREIGN.md) | Unique value proposition |
+| [**Market Analysis**](business/MARKET_ANALYSIS_AND_BUSINESS_MODEL.md) | Market and business model |
+| [**Enhanced Analysis**](business/ENHANCED_BUSINESS_MODEL_ANALYSIS.md) | Deep dive into strategy |
+
+### 🧪 Testing
+
+| Document | Description |
+|----------|-------------|
+| [**Testing Overview**](testing/README.md) | Testing strategy and coverage |
+
+### 📜 Archived Documentation
+
+Older documentation that has been superseded:
+
+| Document | Description |
+|----------|-------------|
+| [Archive](archive/) | Superseded documentation |
 
 ---
 
-## System Components Overview
+## 🗂️ Complete File Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        RTFM-Sovereign                        │
-├─────────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌─────────────┐    ┌─────────────┐    ┌───────────────┐   │
-│  │  Next.js    │───▶│  TEE Agent  │───▶│  Blockchain   │   │
-│  │  Web App    │    │  (EigenComp.)│    │  (Sepolia)    │   │
-│  └─────────────┘    └─────────────┘    └───────────────┘   │
-│         │                  │                   │               │
-│         ▼                  ▼                   ▼               │
-│   User Interface    Attestation         Credential Registry   │
-│   (apps/web)       Verification         (Smart Contracts)      │
-│                                           (packages/...)      │
-│                                                               │
-└─────────────────────────────────────────────────────────────────┘
+docs/
+├── INDEX.md                      # This file
+├── README.md                     # Documentation hub
+├── TEE_DEPLOYMENT.md             # ✅ EigenCloud deployment
+│
+├── technical/
+│   ├── architecture.md           # System architecture
+│   ├── api-reference.md          # API documentation
+│   ├── code-verification-system.md  # Verification system
+│   └── IMPLEMENTATION_GUIDE.md   # Developer guide
+│
+├── user-guide/
+│   ├── getting-started.md        # Quick start
+│   ├── workflow.md               # User workflow
+│   └── keyboard-shortcuts.md     # Shortcuts
+│
+├── hackathon/
+│   ├── EIGENLAYER_HACKATHON_WINNING_STRATEGY.md
+│   ├── PITCH_DECK_COMPLETE.md
+│   └── DEMO_SCRIPT_5MIN.md
+│
+├── business/
+│   ├── COMPLETE_PROJECT_MASTER_DOCUMENT.md
+│   ├── WHAT_MAKES_RTFM_SOVEREIGN.md
+│   ├── MARKET_ANALYSIS_AND_BUSINESS_MODEL.md
+│   └── ENHANCED_BUSINESS_MODEL_ANALYSIS.md
+│
+├── testing/
+│   └── README.md                 # Testing overview
+│
+└── archive/
+    ├── API.md                    # Superseded API docs
+    ├── ARCHITECTURE.md           # Superseded architecture
+    ├── DEPLOYMENTS.md            # Superseded deployment
+    └── ...                       # Other archived docs
 ```
 
-### Component Documentation
+---
 
-| Component | Documentation | Status |
-|-----------|---------------|---------|
-| **Frontend (Next.js)** | [Architecture](ARCHITECTURE.md#frontend-architecture) | ✅ Complete |
-| **TEE Service** | [Architecture](ARCHITECTURE.md#tee-service-architecture) | ✅ Complete |
-| **Smart Contracts** | [Architecture](ARCHITECTURE.md#smart-contracts) | ✅ Complete |
-| **AI Agents** | [Architecture](ARCHITECTURE.md#ai-agents) | ✅ Complete |
-| **Judging Engine** | [Architecture](ARCHITECTURE.md#judging-engine) | ✅ Complete |
+## 🔗 External Resources
+
+### Live Services
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | https://rtfm-sovereign.vercel.app |
+| **TEE Service** | http://136.109.176.251:3001 |
+| **EigenCloud Dashboard** | https://verify-sepolia.eigencloud.xyz/app/0xaA7EFAfc5BB58198B6d9c93A342a89dF53Cce702 |
+
+### Smart Contracts (Sepolia)
+
+| Contract | Address |
+|----------|---------|
+| **RTFMVerifiableRegistry** | [`0x621218a5C6Ef20505AB37D8b934AE83F18CD778d`](https://sepolia.etherscan.io/address/0x621218a5C6Ef20505AB37D8b934AE83F18CD778d) |
+| **RTFMFaucet** | [`0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790`](https://sepolia.etherscan.io/address/0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790) |
+
+### External Links
+
+- **GitHub**: https://github.com/Nathasan1410/RTFM-Sovereign
+- **EigenCloud**: https://eigencloud.xyz
+- **EigenLayer**: https://eigenlayer.xyz
+- **Sepolia Faucet**: https://sepoliafaucet.com
+- **Etherscan Sepolia**: https://sepolia.etherscan.io
 
 ---
 
-## Key Features
+## 📝 Contributing to Documentation
 
-- ✅ **TEE-Powered Verification**: Challenges generated and graded in Intel SGX-protected enclaves
-- ✅ **Cryptographic Attestations**: EIP-712 signed credentials stored on Ethereum blockchain
-- ✅ **AI-Generated Challenges**: Deterministic challenge generation using Cerebras Llama 3.3 70B
-- ✅ **Economic Commitment**: 0.001 ETH stake ensures serious participation
-- ✅ **Circuit Breaker**: Fallback AI providers (Groq + static templates) ensure 99.9% uptime
-- ✅ **Modern UI**: Next.js 16 with Tailwind CSS, responsive design, and PWA support
-- ✅ **Demo Mode**: Presentation safety feature for hackathon demos
+We welcome documentation contributions! Please follow these guidelines:
 
----
+1. **Format**: Use Markdown (`.md`) format
+2. **Organization**: Place files in the appropriate subdirectory
+3. **Updates**: Update this index when adding new files
+4. **Style**: Use clear, concise language
+5. **Examples**: Include code examples where helpful
 
-## Documentation Roadmap
+### Documentation Standards
 
-### Completed ✅
-- [x] Architecture documentation
-- [x] API reference
-- [x] User guide
-- [x] Deployment guide
-- [x] Status report
-- [x] Troubleshooting guide
-- [x] Demo script
-- [x] Environment configuration examples
-- [x] Comprehensive JSDoc coverage (~95%)
-
-### Planned 📋
-- [ ] Video tutorials
-- [ ] Interactive API playground
-- [ ] Architecture diagrams (interactive)
-- [ ] Developer onboarding guide
+- Use tables for structured data
+- Include status badges where applicable
+- Link to related documents
+- Keep files under 500 lines when possible
+- Use consistent heading hierarchy
 
 ---
 
-## Quick Reference
-
-### Smart Contract Addresses (Sepolia)
-
-| Contract | Address | Purpose |
-|-----------|-----------|----------|
-| **RTFMVerifiableRegistry** | `0x7006e886e56426Fbb942B479AC8eF5C47a7531f1` | Attestation storage and verification |
-| **RTFMFaucet** | `0xA607F8A4E5c35Ca6a81623e4B20601205D1d7790` | Testnet ETH distribution |
-
-### TEE Service Endpoints
-
-| Endpoint | Method | Description |
-|----------|---------|-------------|
-| `/identity` | GET | TEE public key and attestation |
-| `/challenge/generate` | POST | AI challenge generation |
-| `/attest` | POST | Answer grading and attestation signing |
-| `/health` | GET | Service health status |
-
-### Key Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|-----------|
-| `NEXT_PUBLIC_TEE_URL` | TEE service endpoint | Yes |
-| `NEXT_PUBLIC_REGISTRY_CONTRACT` | VerifiableRegistry address | Yes |
-| `NEXT_PUBLIC_FAUCET_CONTRACT` | Faucet contract address | Yes |
-| `CEREBRAS_API_KEY` | Cerebras API key | Yes |
-| `TEE_PRIVATE_KEY` | TEE signing private key | Yes |
-| `RPC_URL` | Ethereum RPC URL | Yes |
-
----
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
-
-### Documentation Contributions
-
-To improve documentation:
-1. Fork the repository
-2. Create a branch: `git checkout -b docs/improve-section-x`
-3. Make your changes
-4. Commit: `git commit -m 'docs: improve section X'`
-5. Push: `git push origin docs/improve-section-x`
-6. Open a Pull Request
-
----
-
-## License
-
-MIT © 2024 Nathanael Santoso
-
----
-
-**Last Updated**: 2026-02-23  
-**Documentation Version**: 1.0  
-**Status**: Production Ready ✅
+**Made with ❤️ for EigenCloud OIC 2026**

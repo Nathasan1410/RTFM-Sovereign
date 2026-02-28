@@ -321,12 +321,16 @@ Deployed on Vercel:
 
 ### TEE Service
 
-Deployed on EigenCompute (production) or Docker (development):
-```bash
-cd apps/tee
-docker build -t rtfm-tee:latest .
-docker run -p 3000:3000 rtfm-tee:latest
-```
+**✅ Deployed on EigenCloud**
+
+| Parameter | Value |
+|-----------|-------|
+| **App ID** | `0xaA7EFAfc5BB58198B6d9c93A342a89dF53Cce702` |
+| **Endpoint** | `http://136.109.176.251:3001` |
+| **Dashboard** | [View App](https://verify-sepolia.eigencloud.xyz/app/0xaA7EFAfc5BB58198B6d9c93A342a89dF53Cce702) |
+| **Instance** | `g1-standard-4t` (4 vCPUs, 16 GB memory, TDX) |
+
+See [TEE Deployment Guide](docs/TEE_DEPLOYMENT.md) for details.
 
 ---
 

@@ -12,8 +12,8 @@ WORKDIR /app
 # Copy TEE package files
 COPY apps/tee/package*.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN pnpm install --prod
+# Install ALL dependencies (including devDependencies for @types/node)
+RUN pnpm install
 
 # Copy TEE source code
 COPY apps/tee/src ./src

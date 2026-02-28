@@ -3,8 +3,8 @@
 
 FROM node:18-bullseye-slim
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Install pnpm and typescript globally (needed for build)
+RUN npm install -g pnpm typescript
 
 # Set working directory
 WORKDIR /app
@@ -12,7 +12,7 @@ WORKDIR /app
 # Copy TEE package files
 COPY apps/tee/package*.json ./
 
-# Install production dependencies
+# Install all dependencies (including devDependencies for build)
 RUN pnpm install --prod
 
 # Copy TEE source code
